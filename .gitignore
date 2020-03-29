@@ -1,0 +1,12 @@
+# local .env* files
+.env.local
+.env.*.local
+
+/dist
+node_modules
+/.idea
+
+.DS_Store
+yarn-error.log
+
+packages/*/dist
