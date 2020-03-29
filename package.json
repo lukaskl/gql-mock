@@ -1,8 +1,15 @@
-  
 {
   "workspaces": [
     "packages/*"
   ],
-  "name": "starter",
-  "private": true
+  "name": "gql-mock",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "lerna run build",
+    "dev": "lerna run --parallel dev"
+  },
+  "devDependencies": {
+    "lerna": "^3.20.2"
+  }
 }
