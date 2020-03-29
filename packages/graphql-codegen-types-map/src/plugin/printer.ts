@@ -34,8 +34,8 @@ const getName = (template: string, variables: TemplateVariables) => {
 const ensureConfigDefaults = (config: OperationsMapPrinterConfig) => {
   const {
     templates: {
-      operationType = '${pascalCase(operationName)}Query',
-      variablesType = '${pascalCase(operationName)}QueryVariables',
+      operationType = '${pascalCase(operationName)}${pascalCase(operation)}',
+      variablesType = '${pascalCase(operationName)}${pascalCase(operation)}Variables',
       operationName = '${operationName}',
     } = {},
   } = config
