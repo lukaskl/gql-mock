@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TypeScript Operations Map Plugin Test 1 1`] = `
+"export interface OperationsMap {
+  'Unknown_1': { operationType: Unknown_1Query, variablesType: Unknown_1QueryVariables, type: 'query' }
+}"
+`;
+
+exports[`TypeScript Operations Map Plugin Test 2 1`] = `
+"export interface OperationsMap {
+  'search': { operationType: SearchQuery, variablesType: SearchQueryVariables, type: 'query' }
+}"
+`;
+
+exports[`TypeScript Operations Map Plugin Test 3 1`] = `
+"export interface OperationsMap {
+  'q1': { operationType: Q1Query, variablesType: Q1QueryVariables, type: 'query' }
+  'q2': { operationType: Q2Query, variablesType: Q2QueryVariables, type: 'query' }
+}"
+`;
+
+exports[`TypeScript Operations Map Plugin Test 4 1`] = `
+"export interface OperationsMap {
+  'search1': { operationType: Search1Query, variablesType: Search1QueryVariables, type: 'query' }
+  'search2': { operationType: Search2Query, variablesType: Search2QueryVariables, type: 'query' }
+}"
+`;
