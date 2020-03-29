@@ -6,16 +6,16 @@ import evaluate from 'static-eval'
 import { OperationsMapEntry } from './operationsParser'
 
 export interface OperationsMapPrinterConfig {
-  templates?: {
-    operationName?: string
-    operationType?: string
-    variablesType?: string
+  operationsMap?: {
+    operationKindTemplate?: string
+    operationTypeTemplate?: string
+    variablesTypeTemplate?: string
   }
 }
 
 interface TemplateVariables {
   operationName: string
-  operation: OperationTypeNode
+  operationKind: OperationTypeNode
 }
 
 const casingOperations = (Object.keys(changeCase) as (keyof typeof changeCase)[])
@@ -23,42 +23,53 @@ const casingOperations = (Object.keys(changeCase) as (keyof typeof changeCase)[]
   .reduce((l, r) => ({ ...l, ...r }), {})
 
 const getName = (template: string, variables: TemplateVariables) => {
-  const ast = (parse('`' + template + '`').body[0] as any).expression
+  const ast = (parse('`' + template.replace(/{/g, '${') + '`').body[0] as any).expression
 
-  return evaluate(ast, {
+  const result: string = evaluate(ast, {
     ...casingOperations,
     ...variables,
   })
+  if (result.includes('[object Object]')) {
+    const errorMessage =
+      `Invalid variable or function name used in "operationsMap" template. ` +
+      `Given template: "${template}". ` +
+      `Allowed variables: "${Object.keys(variables).join(', ')}". ` +
+      `Allowed functions: "${Object.keys(casingOperations).join(', ')}". ` +
+      `e.g. template: "{pascalCase(operationName)}{pascalCase(operationKind)}Variables"`
+    console.error(`ERROR: ${errorMessage}`)
+    throw new Error(errorMessage)
+  }
+  return result
 }
 
 const ensureConfigDefaults = (config: OperationsMapPrinterConfig) => {
   const {
-    templates: {
-      operationType = '${pascalCase(operationName)}${pascalCase(operation)}',
-      variablesType = '${pascalCase(operationName)}${pascalCase(operation)}Variables',
-      operationName = '${operationName}',
+    operationsMap: {
+      operationTypeTemplate = '{pascalCase(operationName)}{pascalCase(operationKind)}',
+      variablesTypeTemplate = '{pascalCase(operationName)}{pascalCase(operationKind)}Variables',
+      operationKindTemplate = '{operationKind}',
     } = {},
   } = config
 
-  return { operationType, variablesType, operationName }
+  return { operationTypeTemplate, variablesTypeTemplate, operationKindTemplate }
 }
 
 export class OperationsPrinter {
-  readonly config: ReturnType<typeof ensureConfigDefaults>
+  readonly templates: ReturnType<typeof ensureConfigDefaults>
   constructor(protected readonly operations: OperationsMapEntry[], config: OperationsMapPrinterConfig) {
-    this.config = ensureConfigDefaults(config)
+    this.templates = ensureConfigDefaults(config)
   }
 
   get operationsMapFields() {
-    const { operationName, operationType, variablesType } = this.config
+    const { operationKindTemplate, operationTypeTemplate, variablesTypeTemplate } = this.templates
 
     return this.operations
       .map(x => {
-        const opName = getName(operationName, x)
-        const opType = getName(operationType, x)
-        const varType = getName(variablesType, x)
+        const opKind = getName(operationKindTemplate, x)
+        const opType = getName(operationTypeTemplate, x)
+        const varType = getName(variablesTypeTemplate, x)
 
-        return `'${opName}': { operationType: ${opType}, variablesType: ${varType}, type: '${x.operation}' }`
+        return `'${x.operationName}': { operationType: ${opType}, variablesType: ${varType}, kind: '${opKind}' }`
       })
       .join('\n  ')
   }

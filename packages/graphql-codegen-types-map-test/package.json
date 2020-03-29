@@ -1,10 +1,13 @@
 {
   "name": "graphql-codegen-types-map-test",
+  "description": "Integration tests of the graphql-codegen-types-map library",
   "version": "1.0.0",
   "private": true,
   "license": "MIT",
   "scripts": {
-    "codegen": "yarn graphql-codegen generate --config codegen.yml"
+    "codegen": "yarn graphql-codegen generate --config codegen.yml",
+    "validate": "tsc ./validate-generated.ts --noEmit",
+    "test": "yarn codegen && yarn validate"
   },
   "dependencies": {
     "@graphql-codegen/add": "^1.13.1",

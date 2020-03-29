@@ -5,7 +5,7 @@ documents:
   - './githunt/**/*.{gql,graphql}'
 
 generates:
-  generated/gqlTypes.tsx:
+  generated/gqlTypes.ts:
     hooks:
       afterOneFileWrite:
         - prettier --write
@@ -21,6 +21,11 @@ generates:
           UUID: string
       withHooks: true
       enumsAsTypes: true
+      operationTypeTemplate: "${pascalCase(operationName)}${pascalCase(operationKind)}"
+      operationsMap:
+          operationTypeTemplate: "{pascalCase(operationName)}{pascalCase(operationKind)}"
+          variablesTypeTemplate: '{pascalCase(operationName)}{pascalCase(operationKind)}Variables'
+          operationKindTemplate: '{pascalCase(operationKind)}'
     plugins:
       - add: '/* eslint-disable */'
       - 'typescript'

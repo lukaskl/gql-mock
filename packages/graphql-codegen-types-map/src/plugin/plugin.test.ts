@@ -16,31 +16,19 @@ const runPlugin = async (ast: DocumentNode | DocumentNode[], config: OperationsM
 }
 
 describe('TypeScript Operations Map Plugin', () => {
-  it('Test 1', async () => {
+  it('Anonymous operation throws an error', async () => {
     const ast = parse(/* GraphQL */ `
       query {
         notifications {
           id
-          ... on TextNotification {
-            text
-          }
-
-          ... on ImageNotification {
-            imageUrl
-            metadata {
-              created: createdBy
-            }
-          }
         }
       }
     `)
 
-    const result = await runPlugin(ast)
-
-    expect(result).toMatchSnapshot()
+    await expect(runPlugin(ast)).rejects.toThrow()
   })
 
-  it('Test 3', async () => {
+  it('Test 1', async () => {
     const ast = parse(/* GraphQL */ `
       query q1 {
         search {
@@ -90,7 +78,7 @@ describe('TypeScript Operations Map Plugin', () => {
     expect(result).toMatchSnapshot()
   })
 
-  it('Test 4', async () => {
+  it('Test 3', async () => {
     const ast1 = parse(/* GraphQL */ `
       query search1($trms: String!) {
         search(term: $trms) {
