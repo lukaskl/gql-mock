@@ -1,0 +1,8 @@
+  
+{
+  "workspaces": [
+    "packages/*"
+  ],
+  "name": "starter",
+  "private": true
+}
