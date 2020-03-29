@@ -7,7 +7,10 @@
     "codegen": "yarn graphql-codegen generate --config codegen.yml"
   },
   "dependencies": {
+    "@graphql-codegen/add": "^1.13.1",
+    "@graphql-codegen/cli": "^1.13.1",
+    "@graphql-codegen/typescript": "^1.13.1",
+    "@graphql-codegen/typescript-operations": "^1.13.1",
     "graphql-codegen-types-map": "*"
   }
 }
-
