@@ -1,0 +1,44 @@
+overwrite: true
+schema:
+  - './githunt/schema.json'
+documents:
+  - './githunt/**/*.{gql,graphql}'
+
+generates:
+  generated/fragmentTypes.ts:
+    plugins:
+      - fragment-matcher
+      - add: '/* auto generated file - do not change it manually */'
+    hooks:
+      afterOneFileWrite:
+        - prettier --write
+  generated/gqlTypes.tsx:
+    hooks:
+      afterOneFileWrite:
+        - prettier --write
+    config:
+      # read more:
+      # https://graphql-code-generator.com/docs/plugins/typescript#usage-example
+      # https://graphql-code-generator.com/docs/plugins/typescript-react-apollo
+      avoidOptionals:
+          object: true
+          inputValue: false
+      nonOptionalTypename: true
+      scalars:
+          UUID: string
+          ShortId: string
+          DateTime: string
+          NaiveDateTime: string
+          Decimal: string
+          CountryCode: string
+          CreditAmount: number
+      withHooks: true
+      enumsAsTypes: true
+    plugins:
+      # This should only disable template-strings but it no longer works with
+      # eslint@6 and the create-react-app server.
+      - add: '/* eslint-disable */'
+      - 'typescript'
+      - 'typescript-operations'
+      - 'typescript-react-apollo'
+      - 'graphql-codegen-types-map'
