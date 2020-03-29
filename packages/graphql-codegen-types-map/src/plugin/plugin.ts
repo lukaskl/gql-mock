@@ -6,7 +6,16 @@ import { OperationsPrinter, OperationsMapPrinterConfig } from './printer'
 
 export const plugin: PluginFunction<OperationsMapPrinterConfig> = (schema, rawDocuments, config) => {
   const documents = rawDocuments
-  const allAst = concatAST(documents.map(v => v.document).filter(x => !!x) as DocumentNode[])
+  const allAst = concatAST(
+    documents
+      .map(
+        v =>
+          v.document ||
+          // The next line is to make it work with older versions (<= v1.6.1) of @graphql-codegen
+          (v as any).content
+      )
+      .filter(x => !!x) as DocumentNode[]
+  )
 
   const operations = getOperationsMap(allAst)
   const operationsMapPrinter = new OperationsPrinter(operations, config)
