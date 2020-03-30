@@ -1,9 +1,9 @@
 import { PluginFunction } from '@graphql-codegen/plugin-helpers'
-import { concatAST, DocumentNode } from 'graphql'
+import { concatAST, DocumentNode, TypeInfo } from 'graphql'
 
-import { getOperationsMap } from './operationsParser'
-import { OperationsPrinter, OperationsMapPrinterConfig } from './printer'
 import { validateTemplates } from './expandTemplate'
+import { getOperationsMap } from './operationsParser'
+import { OperationsMapPrinterConfig, OperationsPrinter } from './printer'
 
 const ensureConfigDefaults = (config: OperationsMapPrinterConfig) => {
   const {
@@ -22,6 +22,7 @@ export type TemplatesConfig = ReturnType<typeof ensureConfigDefaults>
 
 export const plugin: PluginFunction<OperationsMapPrinterConfig> = (schema, rawDocuments, config) => {
   const templates = ensureConfigDefaults(config)
+  const typeInfo = new TypeInfo(schema)
 
   const documents = rawDocuments
   const allAst = concatAST(
@@ -35,7 +36,7 @@ export const plugin: PluginFunction<OperationsMapPrinterConfig> = (schema, rawDo
       .filter(x => !!x) as DocumentNode[]
   )
 
-  const operations = getOperationsMap(allAst)
+  const operations = getOperationsMap(typeInfo, allAst)
   const operationsMapPrinter = new OperationsPrinter(operations, templates)
 
   return operationsMapPrinter.operationsMapInterface
