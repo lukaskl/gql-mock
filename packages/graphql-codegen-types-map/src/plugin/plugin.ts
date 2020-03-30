@@ -3,8 +3,26 @@ import { concatAST, DocumentNode } from 'graphql'
 
 import { getOperationsMap } from './operationsParser'
 import { OperationsPrinter, OperationsMapPrinterConfig } from './printer'
+import { validateTemplates } from './expandTemplate'
+
+const ensureConfigDefaults = (config: OperationsMapPrinterConfig) => {
+  const {
+    operationsMap: {
+      operationTypeTemplate = '{pascalCase(operationName)}{pascalCase(operationKind)}',
+      variablesTypeTemplate = '{pascalCase(operationName)}{pascalCase(operationKind)}Variables',
+      operationKindTemplate = '{operationKind}',
+    } = {},
+  } = config
+
+  validateTemplates(operationTypeTemplate, variablesTypeTemplate, operationKindTemplate)
+  return { operationTypeTemplate, variablesTypeTemplate, operationKindTemplate }
+}
+
+export type TemplatesConfig = ReturnType<typeof ensureConfigDefaults>
 
 export const plugin: PluginFunction<OperationsMapPrinterConfig> = (schema, rawDocuments, config) => {
+  const templates = ensureConfigDefaults(config)
+
   const documents = rawDocuments
   const allAst = concatAST(
     documents
@@ -18,7 +36,7 @@ export const plugin: PluginFunction<OperationsMapPrinterConfig> = (schema, rawDo
   )
 
   const operations = getOperationsMap(allAst)
-  const operationsMapPrinter = new OperationsPrinter(operations, config)
+  const operationsMapPrinter = new OperationsPrinter(operations, templates)
 
   return operationsMapPrinter.operationsMapInterface
 }
