@@ -1,6 +1,6 @@
 import { buildSchema } from 'graphql'
 
-export const schema = buildSchema(/* GraphQL */ `
+export const dummySchema = buildSchema(/* GraphQL */ `
   scalar DateTime
 
   type User {

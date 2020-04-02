@@ -1,12 +1,12 @@
 import { parse, DocumentNode } from 'graphql'
-import { schema } from '~/test-support'
+import { dummySchema } from '~/test-support'
 import { plugin } from './plugin'
 import { OperationsMapPrinterConfig } from './printer'
 
 const runPlugin = async (ast: DocumentNode | DocumentNode[], config: OperationsMapPrinterConfig = {}) => {
   const asts = Array.isArray(ast) ? ast : [ast]
   return await plugin(
-    schema,
+    dummySchema,
     asts.map(x => ({ location: 'test-file.ts', document: x })),
     config,
     {

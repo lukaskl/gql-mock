@@ -1,1 +1,1 @@
-export { schema } from './dummy-schema'
+export { dummySchema } from './schema/dummy-schema'
