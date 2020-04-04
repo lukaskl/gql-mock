@@ -9,7 +9,7 @@ export const operationsKeys: KeysObj<OperationsMap> = {
   onCommentAdded: null,
   submitComment: null,
   submitRepository: null,
-  vote: null
+  vote: null,
 }
 
 {
@@ -23,13 +23,13 @@ export const operationsKeys: KeysObj<OperationsMap> = {
 }
 
 {
-  const assertVariableName = <T extends keyof OperationsMap>(
+  const assertVariableNameExists = <T extends keyof OperationsMap>(
     variable: keyof OperationsMap[T]['variablesType']
   ) => {}
 
-  assertVariableName<'Comment'>('limit')
-  assertVariableName<'submitRepository'>('repoFullName')
-  assertVariableName<'onCommentAdded'>('repoFullName')
+  assertVariableNameExists<'Comment'>('limit')
+  assertVariableNameExists<'submitRepository'>('repoFullName')
+  assertVariableNameExists<'onCommentAdded'>('repoFullName')
 }
 
 {
