@@ -1,0 +1,72 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TypeScript Operations Map Plugin Test 1 1`] = `
+Object {
+  "append": Array [],
+  "content": "export interface OperationsMap {
+  export type TypeUsagesForCommentsPageCommentFragment = { User: CommentsPageCommentFragment['postedBy'] } &
+  { Comment: CommentsPageCommentFragment }
+
+  export type TypeUsagesForFeedEntryFragment = { Repository: FeedEntryFragment['repository'] } &
+  { User: FeedEntryFragment['repository']['owner'] } &
+  { Entry: FeedEntryFragment } &
+  TypeUsagesForVoteButtonsFragment &
+  TypeUsagesForRepoInfoFragment
+
+  export type TypeUsagesForRepoInfoFragment = { Repository: RepoInfoFragment['repository'] } &
+  { User: RepoInfoFragment['postedBy'] } &
+  { Entry: RepoInfoFragment }
+
+  export type TypeUsagesForVoteButtonsFragment = { Vote: VoteButtonsFragment['vote'] } &
+  { Entry: VoteButtonsFragment }
+
+  export type TypeUsagesForOnCommentAddedSubscription = { Comment: OnCommentAddedSubscription['commentAdded'] } &
+  { User: NN<OnCommentAddedSubscription['commentAdded']>['postedBy'] } &
+  { Subscription: OnCommentAddedSubscription }
+
+  export type TypeUsagesForCommentQuery = { User: CommentQuery['currentUser'] } &
+  { Entry: CommentQuery['entry'] } &
+  { User: NN<CommentQuery['entry']>['postedBy'] } &
+  { Comment: NN<CommentQuery['entry']>['comments'][0] } &
+  { Comment: NN<CommentQuery['entry']>['comments2'][0] } &
+  { Comment: NN<CommentQuery['entry']>['comments3'][0] } &
+  { Comment: UU<NN<NN<CommentQuery['entry']>['comments3'][0]>, 'Comment'> } &
+  { Repository: NN<CommentQuery['entry']>['repository'] } &
+  { Repository: UU<NN<CommentQuery['entry']>['repository'], 'Repository'> } &
+  { Query: CommentQuery } &
+  TypeUsagesForCommentsPageCommentFragment
+
+  export type TypeUsagesForCurrentUserForProfileQuery = { User: CurrentUserForProfileQuery['currentUser'] } &
+  { Query: CurrentUserForProfileQuery }
+
+  export type TypeUsagesForFeedQuery = { User: FeedQuery['currentUser'] } &
+  { Entry: NN<FeedQuery['feed']>[0] } &
+  { Query: FeedQuery } &
+  TypeUsagesForFeedEntryFragment
+
+  export type TypeUsagesForSubmitRepositoryMutation = { Entry: SubmitRepositoryMutation['submitRepository'] } &
+  { Mutation: SubmitRepositoryMutation }
+
+  export type TypeUsagesForSubmitCommentMutation = { Comment: SubmitCommentMutation['submitComment'] } &
+  { Mutation: SubmitCommentMutation } &
+  TypeUsagesForCommentsPageCommentFragment
+
+  export type TypeUsagesForVoteMutation = { Entry: VoteMutation['vote'] } &
+  { Vote: NN<VoteMutation['vote']>['vote'] } &
+  { Mutation: VoteMutation }
+'onCommentAdded': { operationType: OnCommentAddedSubscription, variablesType: OnCommentAddedSubscriptionVariables, typeUsages: TypeUsagesForOnCommentAddedSubscription, kind: 'subscription' }
+  'Comment': { operationType: CommentQuery, variablesType: CommentQueryVariables, typeUsages: TypeUsagesForCommentQuery, kind: 'query' }
+  'CurrentUserForProfile': { operationType: CurrentUserForProfileQuery, variablesType: CurrentUserForProfileQueryVariables, typeUsages: TypeUsagesForCurrentUserForProfileQuery, kind: 'query' }
+  'Feed': { operationType: FeedQuery, variablesType: FeedQueryVariables, typeUsages: TypeUsagesForFeedQuery, kind: 'query' }
+  'submitRepository': { operationType: SubmitRepositoryMutation, variablesType: SubmitRepositoryMutationVariables, typeUsages: TypeUsagesForSubmitRepositoryMutation, kind: 'mutation' }
+  'submitComment': { operationType: SubmitCommentMutation, variablesType: SubmitCommentMutationVariables, typeUsages: TypeUsagesForSubmitCommentMutation, kind: 'mutation' }
+  'vote': { operationType: VoteMutation, variablesType: VoteMutationVariables, typeUsages: TypeUsagesForVoteMutation, kind: 'mutation' }
+}",
+  "prepend": Array [
+    "type NonNullable<T> = T extends null | undefined ? never : T",
+    "type NN<T> = NonNullable<T>",
+    "type UnwrapUnion<T, K> = T extends { __typename: K } ? T : never",
+    "type UU<T, K> = UnwrapUnion<T, K>",
+  ],
+}
+`;
