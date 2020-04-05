@@ -3,6 +3,7 @@ import webpack from 'webpack'
 import { TsconfigPathsPlugin } from 'tsconfig-paths-webpack-plugin'
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin'
 import nodeExternals from 'webpack-node-externals'
+import { CleanWebpackPlugin }  from 'clean-webpack-plugin'
 
 type NodeEnv = 'development' | 'production' | 'none'
 
@@ -40,6 +41,7 @@ const config: webpack.Configuration = {
     extensions: ['.ts', '.js', '.webpack.js', '.web.js', '.mjs', '.js', '.json'],
   },
   plugins: [
+    new CleanWebpackPlugin(),
     new ForkTsCheckerWebpackPlugin({
       eslint: true,
     }),
