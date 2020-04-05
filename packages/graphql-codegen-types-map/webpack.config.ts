@@ -4,6 +4,7 @@ import { TsconfigPathsPlugin } from 'tsconfig-paths-webpack-plugin'
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin'
 import nodeExternals from 'webpack-node-externals'
 import { CleanWebpackPlugin } from 'clean-webpack-plugin'
+import { CleanupPackageJsonPlugin } from './cleanup-package-json'
 
 type NodeEnv = 'development' | 'production' | 'none'
 
@@ -38,9 +39,10 @@ const config: webpack.Configuration = {
   },
   resolve: {
     plugins: [new TsconfigPathsPlugin()],
-    extensions: ['.ts', '.js', '.webpack.js', '.web.js', '.mjs', '.js', '.json'],
+    extensions: ['.ts'],
   },
   plugins: [
+    new CleanupPackageJsonPlugin(),
     new CleanWebpackPlugin(),
     new ForkTsCheckerWebpackPlugin({
       eslint: true,
