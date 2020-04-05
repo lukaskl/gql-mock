@@ -21,13 +21,26 @@ generates:
           UUID: string
       withHooks: true
       enumsAsTypes: true
-      operationTypeTemplate: "${pascalCase(operationName)}${pascalCase(operationKind)}"
       operationsMap:
-          operationTypeTemplate: "{pascalCase(operationName)}{pascalCase(operationKind)}"
-          variablesTypeTemplate: '{pascalCase(operationName)}{pascalCase(operationKind)}Variables'
-          operationKindTemplate: '{pascalCase(operationKind)}'
+          operationTypeTemplate: "{OperationName}{OperationKind}"
+          variablesTypeTemplate: '{OperationName}{OperationKind}Variables'
+          operationKindTemplate: '{OperationKind}'
     plugins:
       - add: '/* eslint-disable */'
       - 'typescript'
       - 'typescript-operations'
+
+  generated/operationsMap.ts:
+    hooks:
+      afterOneFileWrite:
+        - prettier --write
+    config:
+      operationsMap:
+          operationTypeTemplate: "{OperationName}{OperationKind}"
+          variablesTypeTemplate: '{OperationName}{OperationKind}Variables'
+          operationKindTemplate: '{OperationKind}'
+          importTypesFrom: './gqlTypes'
+    plugins:
+      - add: '/* eslint-disable */'
       - 'graphql-codegen-types-map'
+

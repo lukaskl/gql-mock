@@ -1,4 +1,4 @@
-import { OperationsMap } from './generated/gqlTypes'
+import { OperationsMap } from './generated/operationsMap'
 
 type KeysObj<T extends {}> = { [key in keyof T]: null }
 
