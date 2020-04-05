@@ -16,6 +16,22 @@ query Comment($repoFullName: String!, $limit: Int, $offset: Int) {
     comments(limit: $limit, offset: $offset) {
       ...CommentsPageComment
     }
+
+    #let's make the life a bit more difficult
+    comments2: comments(limit: $limit, offset: $offset) {
+      ... {
+        ... {
+          ...CommentsPageComment
+        }
+      }
+    }
+    comments3: comments(limit: $limit, offset: $offset) {
+      ... {
+        ... on Comment {
+          ...CommentsPageComment
+        }
+      }
+    }
     commentCount
     repository {
       full_name
@@ -27,6 +43,5 @@ query Comment($repoFullName: String!, $limit: Int, $offset: Int) {
         stargazers_count
       }
     }
-
   }
 }
