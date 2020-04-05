@@ -3,7 +3,7 @@ import webpack from 'webpack'
 import { TsconfigPathsPlugin } from 'tsconfig-paths-webpack-plugin'
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin'
 import nodeExternals from 'webpack-node-externals'
-import { CleanWebpackPlugin }  from 'clean-webpack-plugin'
+import { CleanWebpackPlugin } from 'clean-webpack-plugin'
 
 type NodeEnv = 'development' | 'production' | 'none'
 
