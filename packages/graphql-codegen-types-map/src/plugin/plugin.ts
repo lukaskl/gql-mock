@@ -30,7 +30,7 @@ export const plugin: PluginFunction<OperationsMapPrinterConfig> = (schema, rawDo
 
     const operationsMapPrinter = new OperationsMapPrinter(parser, config)
 
-    return operationsMapPrinter.operationsMapInterface
+    return operationsMapPrinter.allContent
   } catch (err) {
     console.log(err)
     throw err

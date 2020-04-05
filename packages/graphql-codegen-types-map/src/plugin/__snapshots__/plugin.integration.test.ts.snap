@@ -3,8 +3,8 @@
 exports[`TypeScript Operations Map Plugin Test 1 1`] = `
 Object {
   "append": Array [],
-  "content": "export interface OperationsMap {
-  export type TypeUsagesForCommentsPageCommentFragment = { User: CommentsPageCommentFragment['postedBy'] } &
+  "content": "
+export type TypeUsagesForCommentsPageCommentFragment = { User: CommentsPageCommentFragment['postedBy'] } &
   { Comment: CommentsPageCommentFragment }
 
   export type TypeUsagesForFeedEntryFragment = { Repository: FeedEntryFragment['repository'] } &
@@ -54,7 +54,8 @@ Object {
   export type TypeUsagesForVoteMutation = { Entry: VoteMutation['vote'] } &
   { Vote: NN<VoteMutation['vote']>['vote'] } &
   { Mutation: VoteMutation }
-'onCommentAdded': { operationType: OnCommentAddedSubscription, variablesType: OnCommentAddedSubscriptionVariables, typeUsages: TypeUsagesForOnCommentAddedSubscription, kind: 'subscription' }
+export interface OperationsMap {
+  'onCommentAdded': { operationType: OnCommentAddedSubscription, variablesType: OnCommentAddedSubscriptionVariables, typeUsages: TypeUsagesForOnCommentAddedSubscription, kind: 'subscription' }
   'Comment': { operationType: CommentQuery, variablesType: CommentQueryVariables, typeUsages: TypeUsagesForCommentQuery, kind: 'query' }
   'CurrentUserForProfile': { operationType: CurrentUserForProfileQuery, variablesType: CurrentUserForProfileQueryVariables, typeUsages: TypeUsagesForCurrentUserForProfileQuery, kind: 'query' }
   'Feed': { operationType: FeedQuery, variablesType: FeedQueryVariables, typeUsages: TypeUsagesForFeedQuery, kind: 'query' }

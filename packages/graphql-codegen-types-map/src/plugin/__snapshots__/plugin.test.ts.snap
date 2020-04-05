@@ -10,10 +10,11 @@ exports[`TypeScript Operations Map Plugin Test 1 1`] = `
 exports[`TypeScript Operations Map Plugin Test 2 1`] = `
 Object {
   "append": Array [],
-  "content": "export interface OperationsMap {
-  export type TypeUsagesForSearchQuery = { SearchResult: SearchQuery['search'][0] } &
+  "content": "
+export type TypeUsagesForSearchQuery = { SearchResult: SearchQuery['search'][0] } &
   { Query: SearchQuery }
-'search': { operationType: SearchQuery, variablesType: SearchQueryVariables, typeUsages: TypeUsagesForSearchQuery, kind: 'query' }
+export interface OperationsMap {
+  'search': { operationType: SearchQuery, variablesType: SearchQueryVariables, typeUsages: TypeUsagesForSearchQuery, kind: 'query' }
 }",
   "prepend": Array [
     "type NonNullable<T> = T extends null | undefined ? never : T",
@@ -27,13 +28,14 @@ Object {
 exports[`TypeScript Operations Map Plugin Test 3 1`] = `
 Object {
   "append": Array [],
-  "content": "export interface OperationsMap {
-  export type TypeUsagesForSearch1Query = { SearchResult: Search1Query['search'][0] } &
+  "content": "
+export type TypeUsagesForSearch1Query = { SearchResult: Search1Query['search'][0] } &
   { Query: Search1Query }
 
   export type TypeUsagesForSearch2Query = { SearchResult: Search2Query['search'][0] } &
   { Query: Search2Query }
-'search1': { operationType: Search1Query, variablesType: Search1QueryVariables, typeUsages: TypeUsagesForSearch1Query, kind: 'query' }
+export interface OperationsMap {
+  'search1': { operationType: Search1Query, variablesType: Search1QueryVariables, typeUsages: TypeUsagesForSearch1Query, kind: 'query' }
   'search2': { operationType: Search2Query, variablesType: Search2QueryVariables, typeUsages: TypeUsagesForSearch2Query, kind: 'query' }
 }",
   "prepend": Array [

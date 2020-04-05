@@ -3,6 +3,7 @@ import { PrinterConfig } from './config'
 import { OperationsParser } from '~/plugin'
 import { Types } from '@graphql-codegen/plugin-helpers'
 import { printTypeUsages } from './typeUsages'
+import { LazyGetter as Lazy } from 'lazy-get-decorator'
 
 const emptyOutput: Types.ComplexPluginOutput = { content: '' }
 
@@ -23,6 +24,30 @@ const mergeOutputs = (separator = '\n', ...outputs: Types.ComplexPluginOutput[])
 export class OperationsMapPrinter {
   constructor(readonly parser: OperationsParser, readonly config: PrinterConfig) {}
 
+  @Lazy()
+  get commonPrependItems(): Types.ComplexPluginOutput {
+    const { importTypesFrom, importedTypesAlias } = this.config.importTypes
+
+    const prepend = [importTypesFrom && `import * as ${importedTypesAlias} from '${importTypesFrom}'`].filter(
+      x => !!x
+    ) as string[]
+
+    return { content: '', prepend }
+  }
+
+  @Lazy()
+  get allContent(): Types.ComplexPluginOutput {
+    const { withTypeUsages } = this.config.typeUsages
+
+    return mergeOutputs(
+      '\n',
+      this.commonPrependItems,
+      withTypeUsages ? this.typeUsages : emptyOutput,
+      this.operationsMapInterface
+    )
+  }
+
+  @Lazy()
   get typeUsages(): Types.ComplexPluginOutput {
     const { parser, config } = this
 
@@ -39,21 +64,24 @@ export class OperationsMapPrinter {
     })
   }
 
-  private get operationsMapFields(): Types.ComplexPluginOutput {
-    const prepend: string[] = []
+  @Lazy()
+  get operationsMapInterface(): Types.ComplexPluginOutput {
+    const { content, ...rest } = this.operationsMapFields
 
+    return {
+      ...rest,
+      content: `export interface OperationsMap {\n  ${content}\n}`,
+    }
+  }
+
+  @Lazy()
+  private get operationsMapFields(): Types.ComplexPluginOutput {
     const { parser, config } = this
     const { allOperations } = parser
 
     const { operationKindTemplate, operationTypeTemplate, variablesTypeTemplate } = config.templates
-    const { importTypesFrom, importedTypesAlias, importRef } = config.importTypes
+    const { importRef } = config.importTypes
     const { withTypeUsages, typeUsagesTemplate } = config.typeUsages
-
-    const typeUsagesResult = withTypeUsages ? this.typeUsages : emptyOutput
-
-    if (importTypesFrom) {
-      prepend.push(`import * as ${importedTypesAlias} from '${importTypesFrom}'`)
-    }
 
     const content = allOperations
       .map(operation => {
@@ -71,15 +99,6 @@ export class OperationsMapPrinter {
       })
       .join('\n  ')
 
-    return mergeOutputs('\n', typeUsagesResult, { content, prepend })
-  }
-
-  get operationsMapInterface(): Types.ComplexPluginOutput {
-    const { content, ...rest } = this.operationsMapFields
-
-    return {
-      ...rest,
-      content: `export interface OperationsMap {\n  ${content}\n}`,
-    }
+    return { content }
   }
 }
