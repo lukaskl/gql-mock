@@ -34,10 +34,20 @@ export const operationsKeys: KeysObj<OperationsMap> = {
 
 {
   const assertOperationKind = <T extends keyof OperationsMap>(
-    variable: OperationsMap[T]['kind']
+    kind: OperationsMap[T]['kind']
   ) => {}
 
   assertOperationKind<'Comment'>('Query')
   assertOperationKind<'submitRepository'>('Mutation')
   assertOperationKind<'onCommentAdded'>('Subscription')
+}
+
+{
+  const assertUsedType = <T extends keyof OperationsMap>(
+    type: keyof OperationsMap[T]['typeUsages']
+  ) => {}
+
+  assertUsedType<'Comment'>('User')
+  assertUsedType<'submitComment'>('User')
+  assertUsedType<'onCommentAdded'>('Comment')
 }

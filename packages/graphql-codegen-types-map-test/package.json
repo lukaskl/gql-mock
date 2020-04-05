@@ -6,14 +6,17 @@
   "license": "MIT",
   "scripts": {
     "codegen": "yarn graphql-codegen generate --config codegen.yml",
-    "validate": "tsc ./validate-generated.ts --noEmit",
-    "test": "yarn codegen && yarn validate"
+    "validate:codegen": "tsc ./validate-generated.ts --noEmit",
+    "validate:package": "ts-node ./validate-package.ts",
+    "validate": "yarn validate:package && yarn codegen && yarn validate:codegen",
+    "test": "yarn validate"
   },
   "dependencies": {
     "@graphql-codegen/add": "^1.13.1",
     "@graphql-codegen/cli": "^1.13.1",
     "@graphql-codegen/typescript": "^1.13.1",
     "@graphql-codegen/typescript-operations": "^1.13.1",
-    "graphql-codegen-types-map": "*"
+    "graphql-codegen-types-map": "*",
+    "ts-node": "^8.8.2"
   }
 }
