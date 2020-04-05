@@ -1,2 +1,2 @@
-export { OperationsParser } from './OperationsParser'
-export { FragmentUsage, TypeUsages, getTypeUsages, UsagePathNode } from './getTypeUsages'
+export * from './OperationsParser'
+export * from './getTypeUsages'
