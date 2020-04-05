@@ -39,8 +39,7 @@ export const isSelectionSetParent = (
     OperationDefinition: null,
   })
 
-  // TODO: FIX THIS ANY!
-  return parentKids.includes((parent as any).kind as SelectionSetParent['kind'])
+  return parentKids.includes(parent.kind as SelectionSetParent['kind'])
 }
 
 export const flattenParentInfo = (parent: SelectionSetParent): FlattenParentInfo => {
