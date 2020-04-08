@@ -2,6 +2,7 @@ import { DocumentNode, GraphQLSchema, TypeInfo } from 'graphql'
 import { LazyGetter as Lazy } from 'lazy-get-decorator'
 
 import { getFragments, getOperations } from './getDefinitions'
+import { getFieldArgsUsageMap } from './getFieldArgsUsage'
 import { getTypeUsages } from './getTypeUsages'
 
 export class OperationsParser {
@@ -29,5 +30,11 @@ export class OperationsParser {
   get typeUsages() {
     const { allDefinitions, typeInfo } = this
     return allDefinitions.map(x => getTypeUsages(x.node, typeInfo))
+  }
+
+  @Lazy()
+  get fieldArgsUsages() {
+    const { schema } = this
+    return getFieldArgsUsageMap(schema)
   }
 }
