@@ -61,8 +61,7 @@ describe('TypeScript Operations Map Plugin', () => {
       }
     `)
     const result = await runPlugin(ast)
-
-    expect(result).toMatchSnapshot()
+    expect(result.content).toMatchSnapshot()
   })
 
   it('Test 2', async () => {
@@ -76,7 +75,7 @@ describe('TypeScript Operations Map Plugin', () => {
 
     const result = await runPlugin(ast)
 
-    expect(result).toMatchSnapshot()
+    expect(result.content).toMatchSnapshot()
   })
 
   it('Test 3', async () => {
@@ -97,6 +96,6 @@ describe('TypeScript Operations Map Plugin', () => {
 
     const result = await runPlugin([ast1, ast2])
 
-    expect(result).toMatchSnapshot()
+    expect(result.content).toMatchSnapshot()
   })
 })

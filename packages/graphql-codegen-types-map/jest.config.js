@@ -1,6 +1,6 @@
 const config = {
   transform: {
-    "^.+\\.tsx?$": "ts-jest",
+    '^.+\\.tsx?$': 'ts-jest',
   },
   testMatch: ['/**/*.test.(js|jsx|ts|tsx)'],
   preset: 'ts-jest',

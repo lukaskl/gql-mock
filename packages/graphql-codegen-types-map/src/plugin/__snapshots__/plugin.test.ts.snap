@@ -8,27 +8,16 @@ exports[`TypeScript Operations Map Plugin Test 1 1`] = `
 `;
 
 exports[`TypeScript Operations Map Plugin Test 2 1`] = `
-Object {
-  "append": Array [],
-  "content": "
+"
 export type TypeUsagesForSearchQuery = { SearchResult: SearchQuery['search'][0] } &
   { Query: SearchQuery }
 export interface OperationsMap {
   'search': { operationType: SearchQuery, variablesType: SearchQueryVariables, typeUsages: TypeUsagesForSearchQuery, kind: 'query' }
-}",
-  "prepend": Array [
-    "type NonNullable<T> = T extends null | undefined ? never : T",
-    "type NN<T> = NonNullable<T>",
-    "type UnwrapUnion<T, K> = T extends { __typename: K } ? T : never",
-    "type UU<T, K> = UnwrapUnion<T, K>",
-  ],
-}
+}"
 `;
 
 exports[`TypeScript Operations Map Plugin Test 3 1`] = `
-Object {
-  "append": Array [],
-  "content": "
+"
 export type TypeUsagesForSearch1Query = { SearchResult: Search1Query['search'][0] } &
   { Query: Search1Query }
 
@@ -37,12 +26,5 @@ export type TypeUsagesForSearch1Query = { SearchResult: Search1Query['search'][0
 export interface OperationsMap {
   'search1': { operationType: Search1Query, variablesType: Search1QueryVariables, typeUsages: TypeUsagesForSearch1Query, kind: 'query' }
   'search2': { operationType: Search2Query, variablesType: Search2QueryVariables, typeUsages: TypeUsagesForSearch2Query, kind: 'query' }
-}",
-  "prepend": Array [
-    "type NonNullable<T> = T extends null | undefined ? never : T",
-    "type NN<T> = NonNullable<T>",
-    "type UnwrapUnion<T, K> = T extends { __typename: K } ? T : never",
-    "type UU<T, K> = UnwrapUnion<T, K>",
-  ],
-}
+}"
 `;

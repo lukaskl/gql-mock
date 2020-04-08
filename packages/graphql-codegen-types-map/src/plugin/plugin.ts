@@ -1,4 +1,4 @@
-import { PluginFunction } from '@graphql-codegen/plugin-helpers'
+import { PluginFunction, Types } from '@graphql-codegen/plugin-helpers'
 import { concatAST, DocumentNode, TypeInfo } from 'graphql'
 
 import { OperationsParser } from './parser'
@@ -8,7 +8,12 @@ export interface OperationsMapPrinterConfig {
   operationsMap: Partial<AllConfigOptions>
 }
 
-export const plugin: PluginFunction<OperationsMapPrinterConfig> = (schema, rawDocuments, rawConfig) => {
+export type Plugin = ReplaceReturnType<
+  PluginFunction<OperationsMapPrinterConfig>,
+  Types.Promisable<Types.ComplexPluginOutput>
+>
+
+export const plugin: Plugin = (schema, rawDocuments, rawConfig) => {
   try {
     const config = new PrinterConfig(rawConfig.operationsMap)
     config.validateConfig()
