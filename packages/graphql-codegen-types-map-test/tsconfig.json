@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.json",
   "include": ["./validate-generated.ts"],
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    "noImplicitAny": true
   }
 }
