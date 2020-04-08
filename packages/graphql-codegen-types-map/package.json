@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "build": "webpack --colors",
-    "build:watch": "yarn build:pack --watch",
+    "build:watch": "yarn build --watch",
     "dev": "yarn build:watch",
     "test": "yarn jest",
     "test:watch": "yarn test --watch"
