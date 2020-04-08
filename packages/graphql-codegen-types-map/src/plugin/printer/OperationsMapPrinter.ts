@@ -54,7 +54,7 @@ export class OperationsMapPrinter {
     const { typeUsages } = parser
 
     const { importRef } = config.importTypes
-    const { typeUsagesTemplate, operationTypeTemplate } = config.templates
+    const { typeUsagesTemplate, operationTypeTemplate } = config.operationTemplates
 
     return printTypeUsages({
       typeUsagesList: typeUsages,
@@ -79,7 +79,7 @@ export class OperationsMapPrinter {
     const { parser, config } = this
     const { allOperations } = parser
 
-    const { operationKindTemplate, operationTypeTemplate, variablesTypeTemplate } = config.templates
+    const { operationKindTemplate, operationTypeTemplate, variablesTypeTemplate } = config.operationTemplates
     const { importRef } = config.importTypes
     const { withTypeUsages, typeUsagesTemplate } = config.typeUsages
 

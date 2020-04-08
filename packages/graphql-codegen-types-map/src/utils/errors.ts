@@ -22,7 +22,7 @@ export const ERRORS = {
       `Given template: "${template}". ` +
       `Allowed variables: "${Object.keys(variables).join(', ')}". ` +
       `Allowed functions: "${Object.keys(casingOperations).join(', ')}". ` +
-      `e.g. template: "{pascalCase(operationName)}{pascalCase(operationKind)}Variables"`
+      `Usage example: "{pascalCase(operationName)}{pascalCase(operationKind)}Variables"`
     throw new Error(errorMessage)
   },
 }

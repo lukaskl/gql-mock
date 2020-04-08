@@ -3,7 +3,7 @@ import flatmap from 'lodash.flatmap'
 import fromEntries from 'object.fromentries'
 
 export interface FieldArgsUsage {
-  typeName: string
+  parentName: string
   fieldName: string
 }
 
@@ -17,9 +17,9 @@ const getObjectTypes = (schema: GraphQLSchema) => {
 }
 
 export const getFieldArgsUsageMap = (schema: GraphQLSchema): FieldArgsUsage[] => {
-  const result = flatmap(Object.entries(getObjectTypes(schema)), ([typeName, type]) => {
+  const result = flatmap(Object.entries(getObjectTypes(schema)), ([parentName, type]) => {
     const fieldWithArgs = Object.entries(type.getFields()).filter(([, type]) => type.args.length > 0)
-    return flatmap(fieldWithArgs, ([fieldName]) => ({ typeName, fieldName }))
+    return flatmap(fieldWithArgs, ([fieldName]) => ({ parentName, fieldName }))
   })
   return result
 }

@@ -1,20 +1,25 @@
-import { validateTemplate } from './expandTemplate'
+import { validateFieldArgsTemplate, validateOperationsTemplate } from './expandTemplate'
 import merge from 'lodash.merge'
 import { pickKeys, KeysObj } from '~/utils'
 
-export interface TemplatesConfig {
+export interface OperationsTemplatesConfig {
   operationTypeTemplate: string
   variablesTypeTemplate: string
   operationKindTemplate: string
   typeUsagesTemplate: string
 }
+export interface FieldArgsTemplateConfig {
+  fieldArgsTypeTemplate: string
+}
+
+export type TemplatesConfig = OperationsTemplatesConfig & FieldArgsTemplateConfig
 
 export interface TypesImportConfig {
   importTypesFrom: string | undefined
   importedTypesAlias: string
 }
 
-export interface TypeUsagesConfig extends Pick<TemplatesConfig, 'typeUsagesTemplate'> {
+export interface TypeUsagesConfig extends Pick<OperationsTemplatesConfig, 'typeUsagesTemplate'> {
   withTypeUsages: boolean
 }
 
@@ -27,14 +32,18 @@ export const defaultConfig: AllConfigOptions = {
   importedTypesAlias: 'Types',
   importTypesFrom: undefined,
   typeUsagesTemplate: 'TypeUsagesFor{OperationName}{OperationKind}',
+  fieldArgsTypeTemplate: '{ParentName}{FieldName}Args',
   withTypeUsages: true,
 }
 
-const templatesConfigKeysObs: KeysObj<keyof TemplatesConfig> = {
+const operationsTemplatesConfigKeysObs: KeysObj<keyof OperationsTemplatesConfig> = {
   operationKindTemplate: null,
   operationTypeTemplate: null,
   variablesTypeTemplate: null,
   typeUsagesTemplate: null,
+}
+const fieldArgsTemplatesConfigKeysObs: KeysObj<keyof FieldArgsTemplateConfig> = {
+  fieldArgsTypeTemplate: null,
 }
 const typesImportConfigKeysObs: KeysObj<keyof TypesImportConfig> = {
   importTypesFrom: null,
@@ -56,24 +65,27 @@ export class PrinterConfig {
     return this.config
   }
 
-  get templates() {
-    return this.pickConfigEntries(templatesConfigKeysObs)
+  get operationTemplates() {
+    return this.pickConfigEntries(operationsTemplatesConfigKeysObs)
   }
+
+  get fieldArgsTemplates() {
+    return this.pickConfigEntries(fieldArgsTemplatesConfigKeysObs)
+  }
+
   get importTypes() {
     const config = this.pickConfigEntries(typesImportConfigKeysObs)
     const importRef = config.importTypesFrom ? `${config.importedTypesAlias}.` : ''
     return { ...config, importRef }
   }
+
   get typeUsages() {
     return this.pickConfigEntries(typeUsagesConfigKeysObs)
   }
 
-  get templateValues() {
-    return Object.values(this.templates)
-  }
-
   validateConfig() {
-    validateTemplate(...this.templateValues)
+    validateOperationsTemplate(...Object.values(this.operationTemplates))
+    validateFieldArgsTemplate(...Object.values(this.fieldArgsTemplates))
   }
 
   private pickConfigEntries = <T extends keyof AllConfigOptions>(pick: KeysObj<T>) =>
