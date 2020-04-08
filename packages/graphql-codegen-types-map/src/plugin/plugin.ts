@@ -1,5 +1,5 @@
 import { PluginFunction, Types } from '@graphql-codegen/plugin-helpers'
-import { concatAST, DocumentNode, TypeInfo } from 'graphql'
+import { concatAST, DocumentNode } from 'graphql'
 
 import { OperationsParser } from './parser'
 import { AllConfigOptions, PrinterConfig, OperationsMapPrinter } from './printer'
@@ -17,7 +17,6 @@ export const plugin: Plugin = (schema, rawDocuments, rawConfig) => {
   try {
     const config = new PrinterConfig(rawConfig.operationsMap)
     config.validateConfig()
-    const typeInfo = new TypeInfo(schema)
 
     const documents = rawDocuments
     const allAst = concatAST(
@@ -31,7 +30,7 @@ export const plugin: Plugin = (schema, rawDocuments, rawConfig) => {
         .filter(x => !!x) as DocumentNode[]
     )
 
-    const parser = new OperationsParser(allAst, typeInfo)
+    const parser = new OperationsParser(allAst, schema)
 
     const operationsMapPrinter = new OperationsMapPrinter(parser, config)
 

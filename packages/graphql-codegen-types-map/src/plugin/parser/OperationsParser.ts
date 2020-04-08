@@ -1,11 +1,14 @@
-import { DocumentNode, TypeInfo } from 'graphql'
+import { DocumentNode, GraphQLSchema, TypeInfo } from 'graphql'
 import { LazyGetter as Lazy } from 'lazy-get-decorator'
 
 import { getFragments, getOperations } from './getDefinitions'
 import { getTypeUsages } from './getTypeUsages'
 
 export class OperationsParser {
-  constructor(readonly allAst: DocumentNode, readonly typeInfo: TypeInfo) {}
+  readonly typeInfo: TypeInfo
+  constructor(readonly allAst: DocumentNode, readonly schema: GraphQLSchema) {
+    this.typeInfo = new TypeInfo(schema)
+  }
 
   @Lazy()
   get allFragments() {
