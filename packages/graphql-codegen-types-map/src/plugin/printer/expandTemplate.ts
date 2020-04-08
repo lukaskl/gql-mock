@@ -5,7 +5,7 @@ import evaluate from 'static-eval'
 import { ERRORS } from '~/utils'
 
 export type OperationKind = OperationTypeNode | 'fragment'
-export interface TemplateVariables {
+export interface OperationTemplateVariables {
   operationName: string
   operationKind: OperationKind
 }
@@ -14,7 +14,7 @@ const casingOperations = (Object.keys(changeCase) as (keyof typeof changeCase)[]
   .map(x => ({ [x]: changeCase[x] }))
   .reduce((l, r) => ({ ...l, ...r }), {})
 
-export const expandTemplate = (template: string, variables: TemplateVariables) => {
+export const expandTemplate = (template: string, variables: OperationTemplateVariables) => {
   const ast = (parse('`' + template.replace(/{/g, '${') + '`').body[0] as any).expression
 
   const allVariables = {
@@ -34,7 +34,7 @@ export const expandTemplate = (template: string, variables: TemplateVariables) =
 }
 
 export const validateTemplate = (...templates: string[]) => {
-  const validationVariables: TemplateVariables = {
+  const validationVariables: OperationTemplateVariables = {
     operationKind: 'query',
     operationName: 'validation',
   }

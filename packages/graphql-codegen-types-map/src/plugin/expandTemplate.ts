@@ -3,7 +3,7 @@ import { parse } from 'esprima'
 import { OperationTypeNode } from 'graphql'
 import evaluate from 'static-eval'
 
-export interface TemplateVariables {
+export interface OperationTemplateVariables {
   operationName: string
   operationKind: OperationTypeNode
 }
@@ -12,7 +12,7 @@ const casingOperations = (Object.keys(changeCase) as (keyof typeof changeCase)[]
   .map(x => ({ [x]: changeCase[x] }))
   .reduce((l, r) => ({ ...l, ...r }), {})
 
-export const expandTemplate = (template: string, variables: TemplateVariables) => {
+export const expandTemplate = (template: string, variables: OperationTemplateVariables) => {
   const ast = (parse('`' + template.replace(/{/g, '${') + '`').body[0] as any).expression
 
   const result: string = evaluate(ast, {
@@ -33,7 +33,7 @@ export const expandTemplate = (template: string, variables: TemplateVariables) =
 }
 
 export const validateTemplates = (...templates: string[]) => {
-  const validationVariables: TemplateVariables = {
+  const validationVariables: OperationTemplateVariables = {
     operationKind: 'query',
     operationName: 'validation',
   }

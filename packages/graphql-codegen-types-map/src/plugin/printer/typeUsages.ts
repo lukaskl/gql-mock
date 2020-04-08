@@ -2,7 +2,8 @@ import { Types } from '@graphql-codegen/plugin-helpers'
 import uniq from 'lodash.uniq'
 import { TypeUsages, UsagePathNode } from '~/plugin/parser'
 import { ERRORS } from '~/utils'
-import { TemplateVariables, expandTemplate } from './expandTemplate'
+
+import { expandTemplate, OperationTemplateVariables } from './expandTemplate'
 
 const printPathToType = (typePath: UsagePathNode[], typeStr = '') => {
   if (typePath.length === 0) return typeStr
@@ -48,7 +49,7 @@ const printSingleTypeUsages = (props: PrintSingleTypeUsagesProps): string => {
 
   const { flattenParent } = root
 
-  const templateVariables: TemplateVariables = {
+  const templateVariables: OperationTemplateVariables = {
     operationName: flattenParent.name,
     operationKind: flattenParent.kind === 'FragmentDefinition' ? 'fragment' : flattenParent.operationKind,
   }

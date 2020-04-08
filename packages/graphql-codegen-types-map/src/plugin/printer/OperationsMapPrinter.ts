@@ -1,4 +1,4 @@
-import { expandTemplate, TemplateVariables } from './expandTemplate'
+import { expandTemplate, OperationTemplateVariables } from './expandTemplate'
 import { PrinterConfig } from './config'
 import { OperationsParser } from '~/plugin'
 import { Types } from '@graphql-codegen/plugin-helpers'
@@ -85,7 +85,10 @@ export class OperationsMapPrinter {
 
     const content = allOperations
       .map(operation => {
-        const variables: TemplateVariables = { operationName: operation.name, operationKind: operation.kind }
+        const variables: OperationTemplateVariables = {
+          operationName: operation.name,
+          operationKind: operation.kind,
+        }
         const expand = (template: string) => expandTemplate(template, variables)
 
         const fields = [
