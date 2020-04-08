@@ -1,10 +1,9 @@
 import { GraphQLObjectType, GraphQLSchema } from 'graphql'
-import flatmap from 'lodash.flatmap'
 import fromEntries from 'object.fromentries'
 
-export interface FieldArgsUsage {
-  parentName: string
-  fieldName: string
+export type FieldArgsUsageEntry = [string, string[]]
+export interface FieldArgsUsages {
+  [parentName: string]: string[]
 }
 
 const getObjectTypes = (schema: GraphQLSchema) => {
@@ -16,10 +15,15 @@ const getObjectTypes = (schema: GraphQLSchema) => {
   return types
 }
 
-export const getFieldArgsUsageMap = (schema: GraphQLSchema): FieldArgsUsage[] => {
-  const result = flatmap(Object.entries(getObjectTypes(schema)), ([parentName, type]) => {
-    const fieldWithArgs = Object.entries(type.getFields()).filter(([, type]) => type.args.length > 0)
-    return flatmap(fieldWithArgs, ([fieldName]) => ({ parentName, fieldName }))
-  })
-  return result
+export const getFieldArgsUsageMap = (schema: GraphQLSchema): FieldArgsUsages => {
+  const entries = Object.entries(getObjectTypes(schema))
+    .map(([parentName, type]) => {
+      const fieldWithArgs = Object.entries(type.getFields())
+        .filter(([, type]) => type.args.length > 0)
+        .map(([fieldName]) => fieldName)
+      return [parentName, fieldWithArgs] as FieldArgsUsageEntry
+    })
+    .filter(([, fieldsWithArgs]) => fieldsWithArgs.length > 0)
+
+  return fromEntries(entries)
 }

@@ -22,7 +22,7 @@ export interface FieldArgsTemplateVariables {
 
 export type TemplateVariables = FieldArgsTemplateVariables | OperationTemplateVariables
 
-export const expandTemplate = <T extends TemplateVariables>(template: string, variables: T) => {
+export const expandTemplate = <T extends TemplateVariables>(template: string, variables: T): string => {
   const ast = (parse('`' + template.replace(/{/g, '${') + '`').body[0] as any).expression
 
   const allVariables = {

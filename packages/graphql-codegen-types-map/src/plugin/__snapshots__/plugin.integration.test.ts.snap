@@ -4,6 +4,25 @@ exports[`TypeScript Operations Map Plugin Test 1 1`] = `
 Object {
   "append": Array [],
   "content": "
+
+export interface FieldArgsUsagesMap {
+  'Query': {
+    feed: QueryFeedArgs,
+    entry: QueryEntryArgs
+  },
+  'Entry': {
+    comments: EntryCommentsArgs
+  },
+  'Mutation': {
+    submitRepository: MutationSubmitRepositoryArgs,
+    vote: MutationVoteArgs,
+    submitComment: MutationSubmitCommentArgs
+  },
+  'Subscription': {
+    commentAdded: SubscriptionCommentAddedArgs
+  }
+}
+
 export type TypeUsagesForCommentsPageCommentFragment = { User: CommentsPageCommentFragment['postedBy'] } &
   { Comment: CommentsPageCommentFragment }
 
@@ -54,6 +73,7 @@ export type TypeUsagesForCommentsPageCommentFragment = { User: CommentsPageComme
   export type TypeUsagesForVoteMutation = { Entry: VoteMutation['vote'] } &
   { Vote: NN<VoteMutation['vote']>['vote'] } &
   { Mutation: VoteMutation }
+
 export interface OperationsMap {
   'onCommentAdded': { operationType: OnCommentAddedSubscription, variablesType: OnCommentAddedSubscriptionVariables, typeUsages: TypeUsagesForOnCommentAddedSubscription, kind: 'subscription' }
   'Comment': { operationType: CommentQuery, variablesType: CommentQueryVariables, typeUsages: TypeUsagesForCommentQuery, kind: 'query' }

@@ -4,6 +4,7 @@ import { OperationsParser } from '~/plugin'
 import { Types } from '@graphql-codegen/plugin-helpers'
 import { printTypeUsages } from './typeUsages'
 import { LazyGetter as Lazy } from 'lazy-get-decorator'
+import { printFieldArgsUsages } from './fieldArgsUsages'
 
 const emptyOutput: Types.ComplexPluginOutput = { content: '' }
 
@@ -40,11 +41,27 @@ export class OperationsMapPrinter {
     const { withTypeUsages } = this.config.typeUsages
 
     return mergeOutputs(
-      '\n',
+      '\n\n',
       this.commonPrependItems,
+      withTypeUsages ? this.fieldArgsUsages : emptyOutput,
       withTypeUsages ? this.typeUsages : emptyOutput,
       this.operationsMapInterface
     )
+  }
+
+  @Lazy()
+  get fieldArgsUsages(): Types.ComplexPluginOutput {
+    const { parser, config } = this
+    const { fieldArgsUsages } = parser
+
+    const { importRef } = config.importTypes
+    const { fieldArgsTypeTemplate } = config.fieldArgsTemplates
+
+    return printFieldArgsUsages({
+      fieldArgsTypeTemplate,
+      importRef,
+      fieldArgsUsages,
+    })
   }
 
   @Lazy()
