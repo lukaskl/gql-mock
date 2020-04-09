@@ -1,6 +1,5 @@
 import path from 'path'
 import webpack from 'webpack'
-import { TsconfigPathsPlugin } from 'tsconfig-paths-webpack-plugin'
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin'
 import nodeExternals from 'webpack-node-externals'
 import { CleanWebpackPlugin } from 'clean-webpack-plugin'
@@ -29,7 +28,15 @@ const config: webpack.Configuration = {
     rules: [
       {
         test: /\.ts$/,
-        use: ['ts-loader', 'eslint-loader'],
+        use: [
+          {
+            loader: 'ts-loader',
+            options: {
+              compiler: 'ttypescript',
+            },
+          },
+          'eslint-loader',
+        ],
         exclude: /node_modules/,
       },
     ],
@@ -38,7 +45,7 @@ const config: webpack.Configuration = {
     minimize: false,
   },
   resolve: {
-    plugins: [new TsconfigPathsPlugin()],
+    plugins: [],
     extensions: ['.ts'],
   },
   plugins: [
