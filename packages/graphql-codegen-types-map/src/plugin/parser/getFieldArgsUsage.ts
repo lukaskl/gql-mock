@@ -1,5 +1,5 @@
 import { GraphQLObjectType, GraphQLSchema } from 'graphql'
-import fromEntries from 'object.fromentries'
+import { fromEntries } from '~/utils'
 
 export type FieldArgsUsageEntry = [string, string[]]
 export interface FieldArgsUsages {
@@ -11,7 +11,7 @@ const getObjectTypes = (schema: GraphQLSchema) => {
     Object.entries(schema.getTypeMap())
       .filter(([, type]) => type instanceof GraphQLObjectType)
       .filter(([typeName]) => !typeName.startsWith('__'))
-  ) as GraphQLObjectType[]
+  ) as { [key: string]: GraphQLObjectType }
   return types
 }
 

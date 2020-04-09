@@ -3,6 +3,7 @@ import { concatAST, DocumentNode } from 'graphql'
 
 import { OperationsParser } from './parser'
 import { AllConfigOptions, PrinterConfig, OperationsMapPrinter } from './printer'
+import { ReplaceReturnType } from '~/utils'
 
 export interface OperationsMapPrinterConfig {
   operationsMap: Partial<AllConfigOptions>

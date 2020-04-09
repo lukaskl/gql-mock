@@ -2,8 +2,7 @@ import * as changeCase from 'change-case'
 import { parse } from 'esprima'
 import { OperationTypeNode } from 'graphql'
 import evaluate from 'static-eval'
-import { ERRORS } from '~/utils'
-import fromEntries from 'object.fromentries'
+import { ERRORS, fromEntries } from '~/utils'
 
 const casingOperations = (Object.keys(changeCase) as (keyof typeof changeCase)[])
   .map(x => ({ [x]: changeCase[x] }))

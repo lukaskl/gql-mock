@@ -1,4 +1,9 @@
+/**
+ * These types will NOT be included
+ * to the final bundle
+ * be careful adding things here
+ */
 declare module 'object.fromentries' {
-  const fromTypes: <Key extends PropertyKey, Value>(entries: Iterable<[Key, Value]>) => { [key: Key]: Value }
+  const fromTypes: unknown
   export default fromTypes
 }
