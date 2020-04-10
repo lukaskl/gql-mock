@@ -19,16 +19,12 @@ generates:
       nonOptionalTypename: true
       scalars:
           UUID: string
-      withHooks: true
       enumsAsTypes: true
-      operationsMap:
-          operationTypeTemplate: "{OperationName}{OperationKind}"
-          variablesTypeTemplate: '{OperationName}{OperationKind}Variables'
-          operationKindTemplate: '{OperationKind}'
     plugins:
       - add: '/* eslint-disable */'
       - 'typescript'
       - 'typescript-operations'
+      - 'typescript-document-nodes'
 
   generated/operationsMap.ts:
     hooks:
@@ -38,7 +34,8 @@ generates:
       operationsMap:
           operationTypeTemplate: "{OperationName}{OperationKind}"
           variablesTypeTemplate: '{OperationName}{OperationKind}Variables'
-          operationKindTemplate: '{OperationKind}'
+          operationKindTemplate: '{operationKind}'
+          operationDocumentTemplate: '{OperationName}'
           importTypesFrom: './gqlTypes'
     plugins:
       - add: '/* eslint-disable */'

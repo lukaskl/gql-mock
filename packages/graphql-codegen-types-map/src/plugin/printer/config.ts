@@ -4,6 +4,7 @@ import { pickKeys, KeysObj } from '~/utils'
 
 export interface OperationsTemplatesConfig {
   operationTypeTemplate: string
+  operationDocumentTemplate: string
   variablesTypeTemplate: string
   operationKindTemplate: string
   typeUsagesTemplate: string
@@ -23,17 +24,21 @@ export interface TypeUsagesConfig extends Pick<OperationsTemplatesConfig, 'typeU
   withTypeUsages: boolean
 }
 
-export interface AllConfigOptions extends TemplatesConfig, TypesImportConfig, TypeUsagesConfig {}
+export interface AllConfigOptions extends TemplatesConfig, TypesImportConfig, TypeUsagesConfig {
+  withDocumentsMap: boolean
+}
 
 export const defaultConfig: AllConfigOptions = {
   operationTypeTemplate: '{OperationName}{OperationKind}',
   variablesTypeTemplate: '{OperationName}{OperationKind}Variables',
+  operationDocumentTemplate: '{OperationName}{OperationKind === "Fragment" ? "FragmentDoc" : "Document"}',
   operationKindTemplate: '{operationKind}',
   importedTypesAlias: 'Types',
   importTypesFrom: undefined,
   typeUsagesTemplate: 'TypeUsagesFor{OperationName}{OperationKind}',
   fieldArgsTypeTemplate: '{ParentName}{FieldName}Args',
   withTypeUsages: true,
+  withDocumentsMap: true,
 }
 
 const operationsTemplatesConfigKeysObs: KeysObj<keyof OperationsTemplatesConfig> = {
@@ -41,6 +46,7 @@ const operationsTemplatesConfigKeysObs: KeysObj<keyof OperationsTemplatesConfig>
   operationTypeTemplate: null,
   variablesTypeTemplate: null,
   typeUsagesTemplate: null,
+  operationDocumentTemplate: null,
 }
 const fieldArgsTemplatesConfigKeysObs: KeysObj<keyof FieldArgsTemplateConfig> = {
   fieldArgsTypeTemplate: null,

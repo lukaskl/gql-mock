@@ -21,6 +21,7 @@ export const getFragments = (allAst: DocumentNode) => {
     node,
     name: node.name.value,
     onType: node.typeCondition.name.value,
+    kind: 'fragment' as const,
   }))
 }
 

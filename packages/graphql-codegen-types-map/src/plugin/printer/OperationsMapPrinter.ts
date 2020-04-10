@@ -38,15 +38,29 @@ export class OperationsMapPrinter {
 
   @Lazy()
   get allContent(): Types.ComplexPluginOutput {
-    const { withTypeUsages } = this.config.typeUsages
+    const { withTypeUsages, withDocumentsMap } = this.config.allOptions
 
     return mergeOutputs(
       '\n\n',
       this.commonPrependItems,
       withTypeUsages ? this.fieldArgsUsages : emptyOutput,
       withTypeUsages ? this.typeUsages : emptyOutput,
-      this.operationsMapInterface
+      this.operationsMapInterface,
+      this.typesMap,
+      withDocumentsMap ? this.documentsMap : emptyOutput
     )
+  }
+
+  @Lazy()
+  get typesMap(): Types.ComplexPluginOutput {
+    const { withTypeUsages } = this.config.typeUsages
+
+    const fields = [
+      'operations: OperationsMap',
+      `fieldArgsUsages: ${withTypeUsages ? 'FieldArgsUsagesMap' : '{}'}`,
+    ].join('\n  ')
+
+    return { content: `export interface TypesMap {\n  ${fields}\n}` }
   }
 
   @Lazy()
@@ -82,17 +96,7 @@ export class OperationsMapPrinter {
   }
 
   @Lazy()
-  get operationsMapInterface(): Types.ComplexPluginOutput {
-    const { content, ...rest } = this.operationsMapFields
-
-    return {
-      ...rest,
-      content: `export interface OperationsMap {\n  ${content}\n}`,
-    }
-  }
-
-  @Lazy()
-  private get operationsMapFields(): Types.ComplexPluginOutput {
+  private get operationsMapInterface(): Types.ComplexPluginOutput {
     const { parser, config } = this
     const { allOperations } = parser
 
@@ -100,7 +104,7 @@ export class OperationsMapPrinter {
     const { importRef } = config.importTypes
     const { withTypeUsages, typeUsagesTemplate } = config.typeUsages
 
-    const content = allOperations
+    const fields = allOperations
       .map(operation => {
         const variables: OperationTemplateVariables = {
           operationName: operation.name,
@@ -119,6 +123,34 @@ export class OperationsMapPrinter {
       })
       .join('\n  ')
 
-    return { content }
+    return { content: `export interface OperationsMap {\n  ${fields}\n}` }
+  }
+
+  @Lazy()
+  get documentsMap(): Types.ComplexPluginOutput {
+    const { parser, config } = this
+    const { allDefinitions } = parser
+
+    const { operationKindTemplate, operationDocumentTemplate } = config.operationTemplates
+    const { importRef } = config.importTypes
+
+    const fields = allDefinitions
+      .map(operation => {
+        const variables: OperationTemplateVariables = {
+          operationName: operation.name,
+          operationKind: operation.kind,
+        }
+        const expand = (template: string) => expandTemplate(template, variables)
+
+        const fields = [
+          `document: ${importRef}${expand(operationDocumentTemplate)}`,
+          `kind: '${expand(operationKindTemplate)}' as const`,
+        ]
+
+        return `'${operation.name}': { ${fields.filter(x => !!x).join(', ')} }`
+      })
+      .join(',\n  ')
+
+    return { content: `export const documentsMap = {\n  ${fields}\n}` }
   }
 }
