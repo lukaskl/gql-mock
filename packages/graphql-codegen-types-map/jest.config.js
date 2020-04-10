@@ -8,6 +8,7 @@ const config = {
   moduleNameMapper: {
     '~/(.*)': '<rootDir>/src/$1',
   },
+  modulePathIgnorePatterns: ['<rootDir>/dist'],
 }
 
 module.exports = {
