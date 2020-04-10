@@ -24,6 +24,15 @@ export type TypeUsagesForSearchQuery = { SearchResult: SearchQuery['search'][0] 
 
 export interface OperationsMap {
   'search': { operationType: SearchQuery, variablesType: SearchQueryVariables, typeUsages: TypeUsagesForSearchQuery, kind: 'query' }
+}
+
+export interface TypesMap {
+  operations: OperationsMap
+  fieldArgsUsages: FieldArgsUsagesMap
+}
+
+export const documentsMap = {
+  'search': { document: SearchDocument, kind: 'query' as const }
 }"
 `;
 
@@ -48,5 +57,15 @@ export type TypeUsagesForSearch1Query = { SearchResult: Search1Query['search'][0
 export interface OperationsMap {
   'search1': { operationType: Search1Query, variablesType: Search1QueryVariables, typeUsages: TypeUsagesForSearch1Query, kind: 'query' }
   'search2': { operationType: Search2Query, variablesType: Search2QueryVariables, typeUsages: TypeUsagesForSearch2Query, kind: 'query' }
+}
+
+export interface TypesMap {
+  operations: OperationsMap
+  fieldArgsUsages: FieldArgsUsagesMap
+}
+
+export const documentsMap = {
+  'search1': { document: Search1Document, kind: 'query' as const },
+  'search2': { document: Search2Document, kind: 'query' as const }
 }"
 `;

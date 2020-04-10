@@ -82,6 +82,25 @@ export interface OperationsMap {
   'submitRepository': { operationType: SubmitRepositoryMutation, variablesType: SubmitRepositoryMutationVariables, typeUsages: TypeUsagesForSubmitRepositoryMutation, kind: 'mutation' }
   'submitComment': { operationType: SubmitCommentMutation, variablesType: SubmitCommentMutationVariables, typeUsages: TypeUsagesForSubmitCommentMutation, kind: 'mutation' }
   'vote': { operationType: VoteMutation, variablesType: VoteMutationVariables, typeUsages: TypeUsagesForVoteMutation, kind: 'mutation' }
+}
+
+export interface TypesMap {
+  operations: OperationsMap
+  fieldArgsUsages: FieldArgsUsagesMap
+}
+
+export const documentsMap = {
+  'CommentsPageComment': { document: CommentsPageCommentFragmentDoc, kind: 'fragment' as const },
+  'FeedEntry': { document: FeedEntryFragmentDoc, kind: 'fragment' as const },
+  'RepoInfo': { document: RepoInfoFragmentDoc, kind: 'fragment' as const },
+  'VoteButtons': { document: VoteButtonsFragmentDoc, kind: 'fragment' as const },
+  'onCommentAdded': { document: OnCommentAddedDocument, kind: 'subscription' as const },
+  'Comment': { document: CommentDocument, kind: 'query' as const },
+  'CurrentUserForProfile': { document: CurrentUserForProfileDocument, kind: 'query' as const },
+  'Feed': { document: FeedDocument, kind: 'query' as const },
+  'submitRepository': { document: SubmitRepositoryDocument, kind: 'mutation' as const },
+  'submitComment': { document: SubmitCommentDocument, kind: 'mutation' as const },
+  'vote': { document: VoteDocument, kind: 'mutation' as const }
 }",
   "prepend": Array [
     "type NonNullable<T> = T extends null | undefined ? never : T",
