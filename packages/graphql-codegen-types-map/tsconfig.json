@@ -1,6 +1,13 @@
 {
   "extends": "../../tsconfig.json",
-  "exclude": ["node_modules", "dist", "./webpack.config.ts", "./cleanup-package-json.ts"],
+  "exclude": [
+    "node_modules",
+    "./dist",
+    "./webpack.config.ts",
+    "./cleanup-package-json.ts",
+    "./src/test-support/**/*",
+    "./**/*.test.*"
+  ],
   "compilerOptions": {
     "target": "es5",
     "module": "CommonJS",
