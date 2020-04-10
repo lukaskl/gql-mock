@@ -1,0 +1,37 @@
+{
+  "extends": "../../tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "./dist",
+    "./webpack.config.ts",
+    "./cleanup-package-json.ts",
+    "./src/test-support/**/*",
+    "./**/*.test.*"
+  ],
+  "compilerOptions": {
+    "target": "es5",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "lib": ["es6"],
+    "rootDirs": ["./src"],
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["src/*"]
+    },
+    "types": ["jest", "node"],
+    "typeRoots": ["src/typings", "../../node_modules/@types"],
+    "experimentalDecorators": true,
+    "declaration": true,
+    "declarationDir": "./dist",
+    /**
+     *  These plugins are used for production build only
+     *  It uses ttypescript - https://github.com/cevek/ttypescript
+     *  which isn't that mainstream, and therefore it is risky to use
+     *  a lot of features from it.
+     */
+    "plugins": [
+      { "transform": "typescript-transform-paths" },
+      { "transform": "typescript-transform-paths", "afterDeclarations": true }
+    ]
+  }
+}
