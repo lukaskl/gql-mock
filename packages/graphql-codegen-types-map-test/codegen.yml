@@ -39,5 +39,5 @@ generates:
           importTypesFrom: './gqlTypes'
     plugins:
       - add: '/* eslint-disable */'
-      - 'graphql-codegen-types-map'
+      - 'types-map'
 
