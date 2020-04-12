@@ -4,16 +4,39 @@ import { documentsMap, schemas, TypesMap } from '~/test-support/githunt'
 
 const { mock } = buildMocking<TypesMap>(schemas.builtSchema, documentsMap)
 
-describe( '', () => {
-  // eslint-disable-next-line jest/no-disabled-tests
+describe('', () => {
+  it('null passed to array the mock resolves to null', () => {
+    const { data } = mock('Feed', {
+      mocks: { Query: { feed: [null] } },
+      variables: { type: 'TOP' },
+    })
+
+    expect(data?.feed?.[0]).toBe(null)
+  })
+
+  it('empty object passed to the array mock resolves to object', () => {
+    const { data } = mock('Feed', {
+      mocks: { Query: { feed: [{}] } },
+      variables: { type: 'TOP' },
+    })
+
+    expect(data?.feed?.[0]?.__typename).toBe('Entry')
+  })
+
+  it('undefined passed to the array mock resolves to object', () => {
+    const { data } = mock('Feed', {
+      mocks: { Query: { feed: [undefined] } },
+      variables: { type: 'TOP' },
+    })
+
+    expect(data?.feed?.[0]?.__typename).toBe('Entry')
+  })
+
   it('mock Feed query', () => {
     const { data } = mock('Feed', {
       mocks: {
         User: { login: 'fake-login' },
-        // TODO: support this API in the future
-        // Right now this is ignored and only 2
-        // items are returned
-        Query: { feed: [{}, {}, null, {}] as any },
+        Query: { feed: [{}, {}, null, {}] },
       },
       variables: { type: 'HOT' },
     })
@@ -22,19 +45,20 @@ describe( '', () => {
     expect(data?.feed?.[0]?.postedBy).toBeTruthy()
     expect(data?.feed?.[0]?.commentCount).toBeTruthy()
   })
+
   it('mock Comment query', () => {
     const { data, errors } = mock('Comment', {
       mocks: {
         User: { login: 'fake-User.login', html_url: 'fake-User.html_url' },
         Entry: {
-          comments: [{ postedBy: { html_url: 'fake-Entry.comments.0.postedBy.html-url' } }, {}] as any,
-          comments2: [] as any,
-          comments3: [] as any,
+          comments: [{ postedBy: { html_url: 'fake-Entry.comments.0.postedBy.html-url' } }, {}],
+          comments2: [],
+          comments3: [],
         },
         Comment: {
           content: 'a',
           postedBy: { login: 'fake-Comment.postedBy.login', html_url: 'fake-Comment.postedBy.html-url' },
-        } as any,
+        },
       },
       variables: { repoFullName: 'test' },
     })

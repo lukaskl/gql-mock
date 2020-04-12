@@ -14,6 +14,7 @@ import { IMocks } from 'graphql-tools'
 import { MAGIC_CONTEXT_MOCKS, mockFields, MockingContext } from './mockFields'
 
 import * as uuid from 'uuid'
+import { DeepPartial } from './types'
 
 export type NaiveIntrospectionResult = { __schema: any }
 export type SchemaInput = NaiveIntrospectionResult | string | GraphQLSchema
@@ -94,45 +95,9 @@ const mergeMocks = (mocks: TypeMocks[]): NormalizedMocks => {
   return mergedMocks.reduce((l, r) => ({ ...l, ...r }), {})
 }
 
-type KeyByTypes<Base extends {}, TypesToPick> = Exclude<
-  {
-    [Key in keyof Base]: Base[Key] extends TypesToPick ? Key : never
-  }[keyof Base],
-  undefined
->
-type KeysByExcludedTypes<Base extends {}, TypesToExclude> = Exclude<
-  {
-    [Key in keyof Base]: Base[Key] extends TypesToExclude ? never : Key
-  }[keyof Base],
-  undefined
->
-
-type ArrayFields<T> = KeyByTypes<NonNullable<T>, any[] | readonly any[] | undefined | null>
-type ScalarFields<T> = KeysByExcludedTypes<
-  NonNullable<T>,
-  { __typename: any } | undefined | null | any[] | readonly any[]
->
-
-type Maybe<T> = T | null
-
-type Arr<T> = Maybe<T>[] | readonly Maybe<T>[]
-type UnpackArr<T> = T extends Arr<infer U> ? U : never
-
-type MockList = any[]
-
-type MockScalars<T> = {
-  [key in ScalarFields<T>]: TypeMock<NonNullable<T>[key]>
+type MockFields<T> = {
+  [key in keyof T]?: TypeMock<DeepPartial<T[key]>>
 }
-
-type MockArrays<T> = {
-  [key in ArrayFields<T>]: UnpackArr<NonNullable<T>[key]> extends { __typename: any }
-    ? null extends NonNullable<T>[key]
-      ? null | (() => MockList | null)
-      : () => MockList
-    : NonNullable<T>[key] | (() => MockList)
-}
-
-type MockFields<T> = Partial<MockScalars<T> & MockArrays<T>>
 
 type OperationKind = 'mutation' | 'query' | 'subscription' | 'fragment'
 type DocumentsMap<T extends PropertyKey> = { [name in T]: { document: DocumentNode; kind: OperationKind } }
@@ -202,15 +167,6 @@ export const buildMocking = <
     // see https://github.com/microsoft/TypeScript/issues/12400#issuecomment-428599865
     const optionsObj = options[0]
     const document = getDocument(operationName)
-
-    // TODO: figure it out how to mock resolvers
-    // without altering the schema on every mock and
-    // therefore littering environment for the next test
-    // addMockFunctionsToSchema({
-    //   schema: gqlSchema,
-    //   mocks: ,
-    //   preserveResolvers: true,
-    // })
 
     const context: MockingContext = {
       [MAGIC_CONTEXT_MOCKS]: {
