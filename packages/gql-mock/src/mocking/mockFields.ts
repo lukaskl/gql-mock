@@ -65,11 +65,11 @@ interface MockingData {
  * As a nice side effect, we can expect performance improvements
  * but that is not the main goal of this function.
  */
-const getCached = <T extends undefined | ResolvedTypeMock>(
+const getCached = (
   cache: CacheMap,
   info: GraphQLResolveInfo,
-  resolve: () => T
-): T => {
+  resolve: () => undefined | ResolvedTypeMock
+): undefined | ResolvedTypeMock => {
   const path = responsePathAsArray(info.path)
   const cacheKey = [
     info.operation.operation + info.operation.loc?.start,
@@ -77,7 +77,7 @@ const getCached = <T extends undefined | ResolvedTypeMock>(
   ].join('.')
 
   if (cacheKey in cache) {
-    return cache[cacheKey] as T
+    return cache[cacheKey]
   }
   const resolved = resolve()
   cache[cacheKey] = resolved
@@ -165,7 +165,10 @@ function mockFields({ schema }: MockFieldsOptions): void {
 
       if (fieldType instanceof GraphQLList) {
         if (resolvedFieldMock) {
-          return existingValue ? merge([], resolvedFieldMock, existingValue) : resolvedFieldMock
+          const result: any[] = existingValue
+            ? merge([], resolvedFieldMock, existingValue)
+            : resolvedFieldMock
+          return result.map(x => (x === undefined ? {} : x))
         }
 
         return resolvedFieldMock === undefined ? [{}, {}] : resolvedFieldMock
