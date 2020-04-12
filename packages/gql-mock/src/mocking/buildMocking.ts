@@ -8,8 +8,9 @@ import {
   SelectionSetNode,
   GraphQLFieldResolver,
   ExecutionResult,
+  buildSchema,
 } from 'graphql'
-import { makeExecutableSchema, IMocks } from 'graphql-tools'
+import { IMocks } from 'graphql-tools'
 import { MAGIC_CONTEXT_MOCKS, mockFields, MockingContext } from './mockFields'
 
 import * as uuid from 'uuid'
@@ -26,18 +27,20 @@ const getSchema = (input: SchemaInput): GraphQLSchema => {
   // which will be used to resolve Fragments
 
   if (typeof input === 'string') {
-    // TODO: replace with buildSchema from graphql
-    // it should be enough
-    return makeExecutableSchema({
-      typeDefs: input,
-    })
+    return buildSchema(input)
   }
 
   if (isIntrospectionQuery(input)) {
     return buildClientSchema(input)
   }
 
-  return input
+  if (input instanceof GraphQLSchema) {
+    return input
+  }
+
+  throw new Error(
+    `Schema must be one of: GraphQLSchema object, JSON of introspection query result, string of GraphQL SDL, found: ${input}`
+  )
 }
 
 function addTypenames(document: DocumentNode): DocumentNode {
