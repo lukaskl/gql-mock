@@ -10,15 +10,87 @@ import {
   getNullableType,
   getNamedType,
   GraphQLScalarType,
+  GraphQLResolveInfo,
 } from 'graphql'
 import { forEachField } from 'graphql-tools'
 import merge from 'lodash.merge'
 
 export const MAGIC_CONTEXT_MOCKS = '__MOCKS-2ba176b7-1636-4cc8-a9cd-f0dcf9c09761'
 
+export type ResolvedTypeMock = { [key in any]: unknown }
+export interface CacheMap {
+  [key: string]: undefined | ResolvedTypeMock
+}
+
+export interface MockOptions {
+  cache: CacheMap
+  mocks: { [key: string]: unknown }
+}
+
 export interface MockFieldsOptions {
   schema: GraphQLSchema
 }
+
+export type MockingContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: MockOptions } & { [key in any]: unknown }
+
+interface MockingData {
+  root: {}
+  args: { [argName: string]: unknown }
+  context: MockingContext
+  info: GraphQLResolveInfo
+  mocking: MockOptions
+}
+
+/**
+ * @description
+ * Caching is necessary here as we want that each type mock resolver would be
+ * invoked only once per single resolved type.
+ *
+ * @explanation
+ * Because we are placing mocks on the fields and each type can contain multiple fields,
+ * mock for the type can be invoked multiple times, E.g. for query:
+ *
+ *     Comment {
+ *       id
+ *       name
+ *     }
+ *
+ * in this case we would resolve Comment mock twice,
+ * firs time to resolve id field, second time to resolve name field.
+ * However, we want that Comment mock would be invoked once here.
+ *
+ * NOTE: However, if the type is used in different places of the query,
+ *  e.g. array, or different field, then we want that it would be invoked again.
+ *
+ * As a nice side effect, we can expect performance improvements
+ * but that is not the main goal of this function.
+ */
+const getCached = <T extends undefined | ResolvedTypeMock>(
+  cache: CacheMap,
+  info: GraphQLResolveInfo,
+  resolve: () => T
+): T => {
+  const path = responsePathAsArray(info.path)
+  const cacheKey = [
+    info.operation.operation + info.operation.loc?.start,
+    ...path.slice(0, path.length - 1),
+  ].join('.')
+
+  if (cacheKey in cache) {
+    return cache[cacheKey] as T
+  }
+  const resolved = resolve()
+  cache[cacheKey] = resolved
+  return resolved
+}
+
+// Basically redefine GraphQLFieldResolver with stricter parameters
+type ResolveFn = (
+  source: {},
+  args: { [argName: string]: unknown },
+  context: { [key in typeof MAGIC_CONTEXT_MOCKS]: MockOptions } & { [key in any]: unknown },
+  info: GraphQLResolveInfo
+) => null | string | boolean | number | {} | any[]
 
 function mockFields({ schema }: MockFieldsOptions): void {
   if (!schema) {
@@ -28,9 +100,9 @@ function mockFields({ schema }: MockFieldsOptions): void {
     throw new Error('Value at "schema" must be of type GraphQLSchema')
   }
 
-  forEachField(schema, (field: GraphQLField<any, any>, typeName: string, rawFieldName: string) => {
+  forEachField(schema, (field: GraphQLField<any, any>, parentTypeName: string) => {
     const oldResolver = field.resolve
-    field.resolve = (root, args, context, info) => {
+    const newResolver: ResolveFn = (root, args, context, info) => {
       const fieldType = getNullableType(field.type)
       const fieldTypeName = getNamedType(fieldType).name
       const path = responsePathAsArray(info.path)
@@ -48,21 +120,18 @@ function mockFields({ schema }: MockFieldsOptions): void {
        */
       const existingValue = (root || {})[fieldName]
 
-      const { [MAGIC_CONTEXT_MOCKS]: mocks, ...restContext } = context || {}
+      const { [MAGIC_CONTEXT_MOCKS]: options, ...restContext } = context || {}
+      const { cache, mocks } = options
 
       // TODO - figure it out what to do with existing resolvers
       const previousResolvers = oldResolver ? [oldResolver] : []
 
-      // TODO - implement type (not field) resolved value caching
-      const cacheKey = [
-        info.operation.operation + info.operation.loc?.start,
-        ...path.slice(0, path.length - 1),
-      ].join('.')
-
-      // implements mocks merging
-      const fieldTypeMock = mocks[typeName]
-      const resolvedTypeMock: {} | undefined =
-        typeof fieldTypeMock === 'function' ? fieldTypeMock(root, args, restContext, info) : fieldTypeMock
+      const parentTypeMockFn = mocks[parentTypeName]
+      const resolvedTypeMock = getCached(cache, info, () =>
+        typeof parentTypeMockFn === 'function'
+          ? parentTypeMockFn(root, args, restContext, info)
+          : parentTypeMockFn
+      )
 
       const resolvedFieldMock = (resolvedTypeMock || {})[fieldName]
 
@@ -114,8 +183,10 @@ function mockFields({ schema }: MockFieldsOptions): void {
         // todo - implement this one
       }
 
-      throw new Error(`Unexpected parent type "${typeName}" of ${path.join('.')}`)
+      throw new Error(`Unexpected parent type "${parentTypeName}" of ${path.join('.')}`)
     }
+
+    field.resolve = newResolver
   })
 }
 

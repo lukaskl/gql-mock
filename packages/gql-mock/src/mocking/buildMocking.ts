@@ -10,7 +10,7 @@ import {
   ExecutionResult,
 } from 'graphql'
 import { makeExecutableSchema, IMocks } from 'graphql-tools'
-import { MAGIC_CONTEXT_MOCKS, mockFields } from './mockFields'
+import { MAGIC_CONTEXT_MOCKS, mockFields, MockingContext } from './mockFields'
 
 import * as uuid from 'uuid'
 
@@ -209,11 +209,19 @@ export const buildMocking = <
     //   preserveResolvers: true,
     // })
 
+    const context: MockingContext = {
+      [MAGIC_CONTEXT_MOCKS]: {
+        cache: {},
+        // TODO: restructure & normalize mocks by Type
+        mocks: { ...defaultMocks, ...(optionsObj?.mocks || {}) },
+      },
+    }
+
     const result = graphqlSync({
       schema: gqlSchema,
       source: document,
       variableValues: optionsObj?.variables,
-      contextValue: { [MAGIC_CONTEXT_MOCKS]: { ...defaultMocks, ...(optionsObj?.mocks || {}) } },
+      contextValue: context,
       fieldResolver: (root, args, context, info) => {
         return ''
       },
