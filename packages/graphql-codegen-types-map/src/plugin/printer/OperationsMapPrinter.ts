@@ -98,28 +98,30 @@ export class OperationsMapPrinter {
   @Lazy()
   private get operationsMapInterface(): Types.ComplexPluginOutput {
     const { parser, config } = this
-    const { allOperations } = parser
+    const { allDefinitions } = parser
 
     const { operationKindTemplate, operationTypeTemplate, variablesTypeTemplate } = config.operationTemplates
     const { importRef } = config.importTypes
     const { withTypeUsages, typeUsagesTemplate } = config.typeUsages
 
-    const fields = allOperations
-      .map(operation => {
+    const fields = allDefinitions
+      .map(definition => {
         const variables: OperationTemplateVariables = {
-          operationName: operation.name,
-          operationKind: operation.kind,
+          operationName: definition.name,
+          operationKind: definition.kind,
         }
         const expand = (template: string) => expandTemplate(template, variables)
 
         const fields = [
           `operationType: ${importRef}${expand(operationTypeTemplate)}`,
-          `variablesType: ${importRef}${expand(variablesTypeTemplate)}`,
+          `variablesType: ${
+            definition.kind === 'fragment' ? '{}' : importRef + expand(variablesTypeTemplate)
+          }`,
           withTypeUsages && `typeUsages: ${expand(typeUsagesTemplate)}`,
           `kind: '${expand(operationKindTemplate)}'`,
         ]
 
-        return `'${operation.name}': { ${fields.filter(x => !!x).join(', ')} }`
+        return `'${definition.name}': { ${fields.filter(x => !!x).join(', ')} }`
       })
       .join('\n  ')
 
@@ -135,10 +137,10 @@ export class OperationsMapPrinter {
     const { importRef } = config.importTypes
 
     const fields = allDefinitions
-      .map(operation => {
+      .map(definition => {
         const variables: OperationTemplateVariables = {
-          operationName: operation.name,
-          operationKind: operation.kind,
+          operationName: definition.name,
+          operationKind: definition.kind,
         }
         const expand = (template: string) => expandTemplate(template, variables)
 
@@ -147,7 +149,7 @@ export class OperationsMapPrinter {
           `kind: '${expand(operationKindTemplate)}' as const`,
         ]
 
-        return `'${operation.name}': { ${fields.filter(x => !!x).join(', ')} }`
+        return `'${definition.name}': { ${fields.filter(x => !!x).join(', ')} }`
       })
       .join(',\n  ')
 
