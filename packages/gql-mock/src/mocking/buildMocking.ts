@@ -9,7 +9,10 @@ import {
   GraphQLFieldResolver,
   ExecutionResult,
 } from 'graphql'
-import { addMockFunctionsToSchema, makeExecutableSchema, IMocks } from 'graphql-tools'
+import { makeExecutableSchema, IMocks } from 'graphql-tools'
+import { MAGIC_CONTEXT_MOCKS, mockFields } from './mockFields'
+
+import * as uuid from 'uuid'
 
 export type NaiveIntrospectionResult = { __schema: any }
 export type SchemaInput = NaiveIntrospectionResult | string | GraphQLSchema
@@ -142,7 +145,15 @@ type AnyOperationMap = {
   kind: OperationKind
 }
 
-type OptionalSpread<T> = {} extends T ? [] : [T]
+type OptionalSpread<T> = {} extends T ? [] | [T] : [T]
+
+const defaultMocks: TypeMocks = {
+  Int: () => Math.round(Math.random() * 200) - 100,
+  Float: () => Math.random() * 200 - 100,
+  String: () => 'Hello World',
+  Boolean: () => Math.random() > 0.5,
+  ID: () => uuid.v4(),
+}
 
 export const buildMocking = <
   TypesMap extends {
@@ -171,6 +182,8 @@ export const buildMocking = <
 
   const gqlSchema = getSchema(schema)
 
+  mockFields({ schema: gqlSchema })
+
   const getDocument = (operationName: OperationKeys): string => {
     // TODO: add lazy loading
     return print(addTypenames(documentsMap[operationName].document))
@@ -190,16 +203,23 @@ export const buildMocking = <
     // TODO: figure it out how to mock resolvers
     // without altering the schema on every mock and
     // therefore littering environment for the next test
-    addMockFunctionsToSchema({
-      schema: gqlSchema,
-      mocks: mergeMocks([optionsObj?.mocks || {}]),
-      preserveResolvers: true,
-    })
+    // addMockFunctionsToSchema({
+    //   schema: gqlSchema,
+    //   mocks: ,
+    //   preserveResolvers: true,
+    // })
 
     const result = graphqlSync({
       schema: gqlSchema,
       source: document,
       variableValues: optionsObj?.variables,
+      contextValue: { [MAGIC_CONTEXT_MOCKS]: { ...defaultMocks, ...(optionsObj?.mocks || {}) } },
+      fieldResolver: (root, args, context, info) => {
+        return ''
+      },
+      typeResolver: (root, args, context, info) => {
+        return ''
+      },
     })
     return result
   }
