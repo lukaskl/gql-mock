@@ -69,12 +69,12 @@ export type MockResolverFn<Root extends {}, Args extends {}, Return, Context = {
   info: GraphQLResolveInfo
 ) => Return
 
-export type TypeMock<Root extends {}, Args extends {}, Return, Context = {}> =
+export type FieldMock<Root extends {}, Args extends {}, Return, Context = {}> =
   | Return
   | MockResolverFn<Root, Args, Return, Context>
   | undefined
 
-export type TypeMocks = { [key: string]: TypeMock<{}, {}, unknown, {}> | undefined }
+export type TypeMocks = { [key: string]: FieldMock<{}, {}, unknown, {}> | undefined }
 
 // type NormalizedMocks = IMocks
 
@@ -111,7 +111,7 @@ type PickIfExists<
 > = Key extends keyof Type ? Type[Key] : Default
 
 type MockFields<Type extends {}, ArgsMap extends {}, Context = {}> = {
-  [Field in keyof Type]?: TypeMock<
+  [Field in keyof Type]?: FieldMock<
     DeepPartial<Type>,
     PickIfExists<ArgsMap, Field>,
     DeepPartial<Type[Field]>,
@@ -143,19 +143,54 @@ const defaultMocks: TypeMocks = {
   ID: () => uuid.v4(),
 }
 
+// TODO: remove this type
 export type ResolvableValue<Context, T> =
-  | ((root: unknown, context: Context, args: {}, info: GraphQLResolveInfo) => T)
+  | ((root: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => T)
   | T
+
+export type AllTypesMocks<
+  AllTypes extends {},
+  AllScalars extends {},
+  ArgsMap extends {},
+  Context extends {}
+> = {
+  [Type in keyof AllTypes]?: ResolvableValue<
+    Context,
+    MockFields<AllTypes[Type], PickIfExists<ArgsMap, Type>, Context>
+  >
+} &
+  {
+    [Type in keyof AllScalars]?: FieldMock<{}, {}, AllScalars[Type], Context>
+  }
+
+export interface BuildMockingConfig<
+  AllTypes extends {},
+  AllScalars extends {},
+  ArgsMap extends {},
+  Context extends {}
+> {
+  mocks?: AllTypesMocks<AllTypes, AllScalars, ArgsMap, Context>
+  context?: Context
+}
 
 export const buildMocking = <
   TypesMap extends {
     operations: { [key in keyof TypesMap['operations']]: AnyOperationMap }
     fieldArgsUsages: {}
+    allOutputTypes: {}
+    allScalarTypes: {}
   },
+  Context = {},
   Documents extends DocumentsMap<keyof TypesMap['operations']> = DocumentsMap<keyof TypesMap['operations']>
 >(
   schema: SchemaInput,
-  documentsMap: Documents
+  documentsMap: Documents,
+  config: BuildMockingConfig<
+    TypesMap['allOutputTypes'],
+    TypesMap['allScalarTypes'],
+    TypesMap['fieldArgsUsages'],
+    Context
+  > = {}
 ) => {
   type OperationKeys = keyof TypesMap['operations']
   type UsageTypes<Operation extends OperationKeys> = TypesMap['operations'][Operation]['typeUsages']
@@ -163,12 +198,11 @@ export const buildMocking = <
     Operation
   >[Type]
 
+  const { context, mocks: baseMocks } = config
+
   type Variables<Operation extends OperationKeys> = TypesMap['operations'][Operation]['variablesType']
   type OperationResult<Operation extends OperationKeys> = TypesMap['operations'][Operation]['operationType']
   type ArgsMap<Type extends PropertyKey> = PickIfExists<TypesMap['fieldArgsUsages'], Type>
-
-  // TODO: support passing context value
-  type Context = {}
 
   type MockOptions<Operation extends OperationKeys> = {
     mocks?: {
@@ -199,19 +233,22 @@ export const buildMocking = <
     const optionsObj = options[0]
     const document = getDocument(operationName)
 
-    const context: MockingContext = {
-      [MAGIC_CONTEXT_MOCKS]: {
-        cache: {},
-        // TODO: restructure & normalize mocks by Type
-        mocks: { ...defaultMocks, ...(optionsObj?.mocks || {}) },
-      },
+    const extraContextContent = {
+      cache: {},
+      // TODO: restructure & normalize mocks by Type
+      mocks: { ...defaultMocks, ...baseMocks, ...(optionsObj?.mocks || {}) },
+    }
+
+    const mockingContext: MockingContext = {
+      ...context,
+      [MAGIC_CONTEXT_MOCKS]: extraContextContent,
     }
 
     const result = graphqlSync({
       schema: gqlSchema,
       source: document,
       variableValues: optionsObj?.variables,
-      contextValue: context,
+      contextValue: mockingContext,
     })
     return result
   }

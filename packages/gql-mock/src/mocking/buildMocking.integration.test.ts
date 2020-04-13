@@ -1,16 +1,18 @@
 import { buildMocking } from './buildMocking'
 import { documentsMap, schemas, TypesMap } from '~/test-support/githunt'
 
-const { mock } = buildMocking<TypesMap>(schemas.builtSchema, documentsMap)
+const { mock } = buildMocking<TypesMap>(schemas.builtSchema, documentsMap, {
+  mocks: { Date: () => new Date() },
+})
 
 const emptyArray = (length: number) => Array.from(Array(length)).map(() => ({}))
 
 /**
  * TODOs:
  *  - [ ] support passing array of mocks
- *  - [ ] correctly type ./mockFields.ts
  *  - [ ] support enums
  *  - [ ] support unions & interface
+ *  - [ ] correctly type ./mockFields.ts & ./buildMocking
  *
  * non essential additions:
  *  - [ ] support resolving fragments
