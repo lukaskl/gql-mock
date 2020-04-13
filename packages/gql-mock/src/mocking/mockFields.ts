@@ -24,7 +24,7 @@ export interface CacheMap {
 
 export interface MockOptions {
   cache: CacheMap
-  mocks: { [key: string]: unknown }
+  mocks: { [key: string]: undefined | ResolvedTypeMock | ResolveTypeFn<{} | undefined> }
 }
 
 export interface MockFieldsOptions {
@@ -84,13 +84,29 @@ const getCached = (
   return resolved
 }
 
+type AnyFieldValue = null | string | boolean | number | {} | any[]
 // Basically redefine GraphQLFieldResolver with stricter parameters
-type ResolveFn = (
+type ResolveFn<T = AnyFieldValue> = (
   source: {},
   args: { [argName: string]: unknown },
   context: { [key in typeof MAGIC_CONTEXT_MOCKS]: MockOptions } & { [key in any]: unknown },
   info: GraphQLResolveInfo
-) => null | string | boolean | number | {} | any[]
+) => T
+
+// TODO: refactor types used in this file
+type ResolveFieldFn<T = AnyFieldValue> = (
+  source: {},
+  args: { [argName: string]: unknown },
+  context: { [key in any]: unknown },
+  info: GraphQLResolveInfo
+) => T
+
+type ResolveTypeFn<T extends {} | any[] | undefined> = (
+  source: {},
+  args: { [argName: string]: unknown },
+  context: { [key in any]: unknown },
+  info: GraphQLResolveInfo
+) => T
 
 function mockFields({ schema }: MockFieldsOptions): void {
   if (!schema) {
@@ -102,7 +118,8 @@ function mockFields({ schema }: MockFieldsOptions): void {
 
   forEachField(schema, (field: GraphQLField<any, any>, parentTypeName: string) => {
     const oldResolver = field.resolve
-    const newResolver: ResolveFn = (root, args, context, info) => {
+    // TODO: type this function
+    const newResolver: ResolveFn<unknown> = (root, args, context, info) => {
       const fieldType = getNullableType(field.type)
       const fieldTypeName = getNamedType(fieldType).name
       const path = responsePathAsArray(info.path)
@@ -118,7 +135,8 @@ function mockFields({ schema }: MockFieldsOptions): void {
        * And we assume that nested value takes higher
        * priority than broader resolver
        */
-      const existingValue = (root || {})[fieldName]
+      // TODO: type this value
+      const existingValue = ((root as any) || {})[fieldName] as undefined | AnyFieldValue
 
       const { [MAGIC_CONTEXT_MOCKS]: options, ...restContext } = context || {}
       const { cache, mocks } = options
@@ -126,19 +144,24 @@ function mockFields({ schema }: MockFieldsOptions): void {
       // TODO - figure it out what to do with existing resolvers
       const previousResolvers = oldResolver ? [oldResolver] : []
 
-      const parentTypeMockFn = mocks[parentTypeName]
-      const resolvedTypeMock = getCached(cache, info, () =>
-        typeof parentTypeMockFn === 'function'
-          ? parentTypeMockFn(root, args, restContext, info)
-          : parentTypeMockFn
-      )
+      const resolve = <T>(fnOrObj: undefined | T | ResolveFieldFn<T>): T | undefined =>
+        typeof fnOrObj === 'function'
+          ? (fnOrObj as ResolveFieldFn<T>)(root, args, restContext, info)
+          : fnOrObj
 
-      const resolvedFieldMock = (resolvedTypeMock || {})[fieldName]
+      const parentTypeMockFn = mocks[parentTypeName]
+      const resolvedTypeMock = getCached(cache, info, () => resolve(parentTypeMockFn))
+
+      // TODO: type this const
+      const fieldMock = (resolvedTypeMock || {})[fieldName] as
+        | undefined
+        | AnyFieldValue
+        | ResolveFieldFn<AnyFieldValue>
 
       // TODO - split this whole function by type
       if (fieldType instanceof GraphQLScalarType) {
         if (existingValue) return existingValue
-        if (resolvedFieldMock) return resolvedFieldMock
+        if (fieldMock) return resolve(fieldMock)
 
         const scalarTypeMock = mocks[fieldTypeName]
 
@@ -153,9 +176,9 @@ function mockFields({ schema }: MockFieldsOptions): void {
 
       if (fieldType instanceof GraphQLEnumType) {
         if (existingValue) return existingValue
-        if (resolvedFieldMock) return resolvedFieldMock
+        if (fieldMock) return resolve(fieldMock)
 
-        if (!resolvedFieldMock) {
+        if (!fieldMock) {
           // TODO: resolve mock
           // if value is not provided - pick first value from the enum
         }
@@ -164,22 +187,24 @@ function mockFields({ schema }: MockFieldsOptions): void {
       }
 
       if (fieldType instanceof GraphQLList) {
-        if (resolvedFieldMock) {
-          const result: any[] = existingValue
-            ? merge([], resolvedFieldMock, existingValue)
-            : resolvedFieldMock
-          return result.map(x => (x === undefined ? {} : x))
+        if (fieldMock) {
+          const result: any[] | undefined = existingValue
+            ? merge([], resolve(fieldMock), existingValue)
+            : resolve(fieldMock as undefined | any[] | ResolveFieldFn<any[]>)
+          // TODO: write tests for this part
+          // what happens if fieldMock returns null / undefined / any other value
+          return (result || [{}, {}]).map(x => (x === undefined ? {} : x))
         }
 
-        return resolvedFieldMock === undefined ? [{}, {}] : resolvedFieldMock
+        return fieldMock === undefined ? [{}, {}] : fieldMock
       }
 
       if (fieldType instanceof GraphQLObjectType) {
-        if (resolvedFieldMock) {
-          return existingValue ? merge({}, resolvedFieldMock, existingValue) : resolvedFieldMock
+        if (fieldMock) {
+          return existingValue ? merge({}, resolve(fieldMock), existingValue) : resolve(fieldMock)
         }
 
-        return resolvedFieldMock === undefined ? {} : resolvedFieldMock
+        return fieldMock === undefined ? {} : fieldMock
       }
 
       if (fieldType instanceof GraphQLUnionType || fieldType instanceof GraphQLInterfaceType) {

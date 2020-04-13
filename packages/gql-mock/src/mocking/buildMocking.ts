@@ -6,11 +6,10 @@ import {
   visit,
   DocumentNode,
   SelectionSetNode,
-  GraphQLFieldResolver,
   ExecutionResult,
   buildSchema,
+  GraphQLResolveInfo,
 } from 'graphql'
-import { IMocks } from 'graphql-tools'
 import { MAGIC_CONTEXT_MOCKS, mockFields, MockingContext } from './mockFields'
 
 import * as uuid from 'uuid'
@@ -63,40 +62,61 @@ function addTypenames(document: DocumentNode): DocumentNode {
   })
 }
 
-export type TypeMock<T extends {}> = T | (() => T) | undefined
+export type MockResolverFn<Root extends {}, Args extends {}, Return, Context = {}> = (
+  root: Root,
+  args: Args,
+  context: Context,
+  info: GraphQLResolveInfo
+) => Return
 
-export type TypeMocks = { [key: string]: TypeMock<{}> | undefined }
+export type TypeMock<Root extends {}, Args extends {}, Return, Context = {}> =
+  | Return
+  | MockResolverFn<Root, Args, Return, Context>
+  | undefined
 
-type NormalizedMocks = IMocks
+export type TypeMocks = { [key: string]: TypeMock<{}, {}, unknown, {}> | undefined }
 
-const mergeMocks = (mocks: TypeMocks[]): NormalizedMocks => {
-  const mocksMap: { [typeName: string]: TypeMock<{}>[] } = {}
+// type NormalizedMocks = IMocks
 
-  for (const mock of mocks) {
-    for (const [typeName, typeMock] of Object.entries(mock)) {
-      if (!mocksMap[typeName]) {
-        mocksMap[typeName] = []
-      }
-      mocksMap[typeName].push(typeMock)
-    }
-  }
+// const mergeMocks = (mocks: TypeMocks[]): NormalizedMocks => {
+//   const mocksMap: { [typeName: string]: TypeMock<{}>[] } = {}
 
-  const mergedMocks = Object.keys(mocksMap).map(typeName => {
-    const resolver: GraphQLFieldResolver<unknown, unknown> = (source, args, context, info) => {
-      const typeMocks = mocksMap[typeName]
-      const reducedMock = typeMocks.reduce(
-        (l, r) => ({ ...l, ...(typeof r === 'function' ? (r as any)(source, args, context, info) : r) }),
-        {}
-      )
-      return reducedMock
-    }
-    return { [typeName]: resolver }
-  })
-  return mergedMocks.reduce((l, r) => ({ ...l, ...r }), {})
-}
+//   for (const mock of mocks) {
+//     for (const [typeName, typeMock] of Object.entries(mock)) {
+//       if (!mocksMap[typeName]) {
+//         mocksMap[typeName] = []
+//       }
+//       mocksMap[typeName].push(typeMock)
+//     }
+//   }
 
-type MockFields<T> = {
-  [key in keyof T]?: TypeMock<DeepPartial<T[key]>>
+//   const mergedMocks = Object.keys(mocksMap).map(typeName => {
+//     const resolver: GraphQLFieldResolver<unknown, unknown> = (source, args, context, info) => {
+//       const typeMocks = mocksMap[typeName]
+//       const reducedMock = typeMocks.reduce(
+//         (l, r) => ({ ...l, ...(typeof r === 'function' ? (r as any)(source, args, context, info) : r) }),
+//         {}
+//       )
+//       return reducedMock
+//     }
+//     return { [typeName]: resolver }
+//   })
+//   return mergedMocks.reduce((l, r) => ({ ...l, ...r }), {})
+// }
+
+type PickIfExists<
+  Type extends {},
+  Key extends string | number | symbol,
+  Default = {}
+> = Key extends keyof Type ? Type[Key] : Default
+
+type MockFields<Type extends {}, ArgsMap extends {}, Context = {}> = {
+  [Field in keyof Type]?: TypeMock<
+    DeepPartial<Type>,
+    PickIfExists<ArgsMap, Field>,
+    DeepPartial<Type[Field]>,
+    Context
+  >
 }
 
 type OperationKind = 'mutation' | 'query' | 'subscription' | 'fragment'
@@ -141,10 +161,11 @@ export const buildMocking = <
 
   type Variables<Operation extends OperationKeys> = TypesMap['operations'][Operation]['variablesType']
   type OperationResult<Operation extends OperationKeys> = TypesMap['operations'][Operation]['operationType']
+  type ArgsMap<Type extends PropertyKey> = PickIfExists<TypesMap['fieldArgsUsages'], Type>
 
   type MockOptions<Operation extends OperationKeys> = {
     mocks?: {
-      [Type in keyof UsageTypes<Operation>]?: MockFields<UsageType<Operation, Type>>
+      [Type in keyof UsageTypes<Operation>]?: MockFields<UsageType<Operation, Type>, ArgsMap<Type>>
     }
   } & RequireIfNotEmpty<'variables', Variables<Operation>>
 

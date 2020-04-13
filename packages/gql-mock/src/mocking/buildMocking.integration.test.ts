@@ -4,7 +4,18 @@ import { documentsMap, schemas, TypesMap } from '~/test-support/githunt'
 
 const { mock } = buildMocking<TypesMap>(schemas.builtSchema, documentsMap)
 
+const emptyArray = (length: number) => Array.from(Array(length)).map(() => ({}))
+
 describe('', () => {
+  it('possible to use field arguments', () => {
+    const { data } = mock('Feed', {
+      mocks: { Query: { feed: (root, { limit }) => emptyArray(limit || 0) } },
+      variables: { type: 'TOP', limit: 3 },
+    })
+
+    expect(data?.feed).toHaveLength(3)
+  })
+
   it('null passed to array the mock resolves to null', () => {
     const { data } = mock('Feed', {
       mocks: { Query: { feed: [null] } },
