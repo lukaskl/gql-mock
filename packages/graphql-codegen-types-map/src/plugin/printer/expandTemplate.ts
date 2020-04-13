@@ -3,7 +3,7 @@ import { parse } from 'esprima'
 import { OperationTypeNode } from 'graphql'
 import evaluate from 'static-eval'
 import { ERRORS, fromEntries } from '~/utils'
-import { GraphQLSchemaOutputTypes } from '../parser'
+import { GraphQLSchemaTypes } from '../parser'
 
 const casingOperations = (Object.keys(changeCase) as (keyof typeof changeCase)[])
   .map(x => ({ [x]: changeCase[x] }))
@@ -22,7 +22,7 @@ export interface FieldArgsTemplateVariables {
 
 export interface TypeAccessorTemplateVariables {
   typeName: string
-  typeKind: GraphQLSchemaOutputTypes
+  typeKind: GraphQLSchemaTypes
 }
 
 export type TemplateVariables =

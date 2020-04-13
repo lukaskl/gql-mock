@@ -1,6 +1,6 @@
 import { expandTemplate, OperationTemplateVariables } from './expandTemplate'
 import { PrinterConfig } from './config'
-import { OperationsParser } from '~/plugin'
+import { OperationsParser, OutputTypeEntry, GraphQLSchemaTypes } from '~/plugin'
 import { Types } from '@graphql-codegen/plugin-helpers'
 import { printTypeUsages } from './typeUsages'
 import { LazyGetter as Lazy } from 'lazy-get-decorator'
@@ -45,6 +45,7 @@ export class OperationsMapPrinter {
       this.commonPrependItems,
 
       this.allOutputTypes,
+      this.allScalarTypes,
       withTypeUsages ? this.fieldArgsUsages : emptyOutput,
       withTypeUsages ? this.typeUsages : emptyOutput,
       this.operationsMapInterface,
@@ -61,6 +62,7 @@ export class OperationsMapPrinter {
       'operations: OperationsMap',
       `fieldArgsUsages: ${withTypeUsages ? 'FieldArgsUsagesMap' : '{}'}`,
       `allOutputTypes: AllOutputTypes`,
+      `allScalarTypes: AllScalarTypes`,
     ].join('\n  ')
 
     return { content: `export interface TypesMap {\n  ${fields}\n}` }
@@ -161,12 +163,23 @@ export class OperationsMapPrinter {
 
   @Lazy()
   get allOutputTypes(): Types.ComplexPluginOutput {
-    const { parser, config } = this
-    const { outputTypes } = parser
+    return this.getTypesMap(this.parser.outputTypes, 'AllOutputTypes')
+  }
+
+  @Lazy()
+  get allScalarTypes(): Types.ComplexPluginOutput {
+    return this.getTypesMap(this.parser.scalarTypes, 'AllScalarTypes')
+  }
+
+  private getTypesMap = <T extends GraphQLSchemaTypes>(
+    entries: OutputTypeEntry<T>[],
+    interfaceName: string
+  ) => {
+    const { config } = this
     const { typeAccessorTypeTemplate } = config.typeAccessorTemplates
     const { importRef } = config.importTypes
 
-    const fields = outputTypes
+    const fields = entries
       .map(
         ({ kind, name }) =>
           `'${name}': ${importRef}${expandTemplate(typeAccessorTypeTemplate, {
@@ -176,6 +189,6 @@ export class OperationsMapPrinter {
       )
       .join('\n  ')
 
-    return { content: `export type AllOutputTypes = {\n  ${fields}\n}` }
+    return { content: `export type ${interfaceName} = {\n  ${fields}\n}` }
   }
 }

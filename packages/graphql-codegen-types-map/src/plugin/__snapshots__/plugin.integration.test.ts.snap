@@ -10,19 +10,22 @@ export type AllOutputTypes = {
   'Followable': Followable
   'Organization': Organization
   'Actor': Actor
-  'String': Scalars[\\"String\\"]
   'Repository': Repository
-  'Int': Scalars[\\"Int\\"]
   'FeedType': FeedType
   'Entry': Entry
   'User': User
-  'Date': Scalars[\\"Date\\"]
-  'Float': Scalars[\\"Float\\"]
   'Comment': Comment
   'Vote': Vote
   'Mutation': Mutation
   'VoteType': VoteType
   'Subscription': Subscription
+}
+
+export type AllScalarTypes = {
+  'String': Scalars[\\"String\\"]
+  'Int': Scalars[\\"Int\\"]
+  'Date': Scalars[\\"Date\\"]
+  'Float': Scalars[\\"Float\\"]
   'Boolean': Scalars[\\"Boolean\\"]
 }
 
@@ -138,6 +141,7 @@ export interface TypesMap {
   operations: OperationsMap
   fieldArgsUsages: FieldArgsUsagesMap
   allOutputTypes: AllOutputTypes
+  allScalarTypes: AllScalarTypes
 }
 
 export const documentsMap = {

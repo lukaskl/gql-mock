@@ -10,19 +10,22 @@ export type AllOutputTypes = {
   Followable: Types.Followable
   Organization: Types.Organization
   Actor: Types.Actor
-  String: Types.Scalars['String']
   Repository: Types.Repository
-  Int: Types.Scalars['Int']
   FeedType: Types.FeedType
   Entry: Types.Entry
   User: Types.User
-  Date: Types.Scalars['Date']
-  Float: Types.Scalars['Float']
   Comment: Types.Comment
   Vote: Types.Vote
   Mutation: Types.Mutation
   VoteType: Types.VoteType
   Subscription: Types.Subscription
+}
+
+export type AllScalarTypes = {
+  String: Types.Scalars['String']
+  Int: Types.Scalars['Int']
+  Date: Types.Scalars['Date']
+  Float: Types.Scalars['Float']
   Boolean: Types.Scalars['Boolean']
 }
 
@@ -252,6 +255,7 @@ export interface TypesMap {
   operations: OperationsMap
   fieldArgsUsages: FieldArgsUsagesMap
   allOutputTypes: AllOutputTypes
+  allScalarTypes: AllScalarTypes
 }
 
 export const documentsMap = {

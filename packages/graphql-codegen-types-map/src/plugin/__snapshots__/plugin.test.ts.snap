@@ -13,10 +13,7 @@ exports[`TypeScript Operations Map Plugin Test 2 1`] = `
 export type AllOutputTypes = {
   'Query': Query
   'User': User
-  'ID': Scalars[\\"ID\\"]
-  'String': Scalars[\\"String\\"]
   'Profile': Profile
-  'Int': Scalars[\\"Int\\"]
   'Role': Role
   'MyUnion': MyUnion
   'Notifiction': Notifiction
@@ -27,6 +24,12 @@ export type AllOutputTypes = {
   'SearchResult': SearchResult
   'Mutation': Mutation
   'Subscription': Subscription
+}
+
+export type AllScalarTypes = {
+  'ID': Scalars[\\"ID\\"]
+  'String': Scalars[\\"String\\"]
+  'Int': Scalars[\\"Int\\"]
   'Boolean': Scalars[\\"Boolean\\"]
   'DateTime': Scalars[\\"DateTime\\"]
 }
@@ -51,6 +54,7 @@ export interface TypesMap {
   operations: OperationsMap
   fieldArgsUsages: FieldArgsUsagesMap
   allOutputTypes: AllOutputTypes
+  allScalarTypes: AllScalarTypes
 }
 
 export const documentsMap = {
@@ -64,10 +68,7 @@ exports[`TypeScript Operations Map Plugin Test 3 1`] = `
 export type AllOutputTypes = {
   'Query': Query
   'User': User
-  'ID': Scalars[\\"ID\\"]
-  'String': Scalars[\\"String\\"]
   'Profile': Profile
-  'Int': Scalars[\\"Int\\"]
   'Role': Role
   'MyUnion': MyUnion
   'Notifiction': Notifiction
@@ -78,6 +79,12 @@ export type AllOutputTypes = {
   'SearchResult': SearchResult
   'Mutation': Mutation
   'Subscription': Subscription
+}
+
+export type AllScalarTypes = {
+  'ID': Scalars[\\"ID\\"]
+  'String': Scalars[\\"String\\"]
+  'Int': Scalars[\\"Int\\"]
   'Boolean': Scalars[\\"Boolean\\"]
   'DateTime': Scalars[\\"DateTime\\"]
 }
@@ -106,6 +113,7 @@ export interface TypesMap {
   operations: OperationsMap
   fieldArgsUsages: FieldArgsUsagesMap
   allOutputTypes: AllOutputTypes
+  allScalarTypes: AllScalarTypes
 }
 
 export const documentsMap = {

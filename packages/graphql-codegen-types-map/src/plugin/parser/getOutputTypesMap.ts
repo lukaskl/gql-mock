@@ -1,8 +1,8 @@
 import { GraphQLSchema, GraphQLNullableType } from 'graphql'
 import { ERRORS } from '~/utils'
 
-export type GraphQLSchemaOutputTypes = 'enum' | 'scalar' | 'object' | 'interface' | 'union'
-export type GraphQLSchemaTypes = GraphQLSchemaOutputTypes | 'inputObject'
+export type GraphQLSchemaOutputTypes = 'enum' | 'object' | 'interface' | 'union'
+export type GraphQLSchemaTypes = GraphQLSchemaOutputTypes | 'inputObject' | 'scalar'
 
 const typeToLiteral = (type: GraphQLNullableType): GraphQLSchemaTypes => {
   const typeName = type.constructor.name
@@ -24,23 +24,26 @@ const typeToLiteral = (type: GraphQLNullableType): GraphQLSchemaTypes => {
   }
 }
 
-export interface OutputTypeEntry {
-  kind: GraphQLSchemaOutputTypes
+export interface OutputTypeEntry<Kinds extends string> {
+  kind: Kinds
   name: string
 }
 
-export const getAllOutputTypesMap = (schema: GraphQLSchema): OutputTypeEntry[] => {
+export const getTypesMap = <T extends GraphQLSchemaTypes>(
+  schema: GraphQLSchema,
+  ...exclude: T[]
+): OutputTypeEntry<Extract<GraphQLSchemaTypes, T>>[] => {
   const types = schema.getTypeMap()
   const outputTypes = Object.entries(types)
     .map(([key, type]) => {
       if (key.startsWith('__')) return
       const typeKind = typeToLiteral(type)
 
-      if (typeKind === 'inputObject') return
+      if (!exclude.includes(typeKind as any)) return
 
-      const result: OutputTypeEntry = { kind: typeKind, name: key }
+      const result = { kind: typeKind, name: key }
       return result
     })
-    .filter(x => !!x) as OutputTypeEntry[]
-  return outputTypes
+    .filter(x => !!x)
+  return outputTypes as OutputTypeEntry<Extract<GraphQLSchemaTypes, T>>[]
 }
