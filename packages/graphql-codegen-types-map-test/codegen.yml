@@ -1,8 +1,8 @@
 overwrite: true
 schema:
-  - './githunt/schema.json'
+  - './githunt/schema.gql'
 documents:
-  - './githunt/**/*.{gql,graphql}'
+  - './githunt/**/*.graphql'
 
 generates:
   generated/gqlTypes.ts:

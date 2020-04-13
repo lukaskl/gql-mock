@@ -5,10 +5,13 @@ Object {
   "append": Array [],
   "content": "
 
+
+
 export interface FieldArgsUsagesMap {
   'Query': {
     feed: QueryFeedArgs,
-    entry: QueryEntryArgs
+    entry: QueryEntryArgs,
+    repository: QueryRepositoryArgs
   },
   'Entry': {
     comments: EntryCommentsArgs
@@ -27,7 +30,7 @@ export type TypeUsagesForCommentsPageCommentFragment = { User: CommentsPageComme
   { Comment: CommentsPageCommentFragment }
 
   export type TypeUsagesForFeedEntryFragment = { Repository: FeedEntryFragment['repository'] } &
-  { User: FeedEntryFragment['repository']['owner'] } &
+  { Actor: FeedEntryFragment['repository']['owner'] } &
   { Entry: FeedEntryFragment } &
   TypeUsagesForVoteButtonsFragment &
   TypeUsagesForRepoInfoFragment
@@ -63,8 +66,29 @@ export type TypeUsagesForCommentsPageCommentFragment = { User: CommentsPageComme
   { Query: FeedQuery } &
   TypeUsagesForFeedEntryFragment
 
+  export type TypeUsagesForGetExtendedFollowSuggestionsQuery = { Followable: GetExtendedFollowSuggestionsQuery['followSuggestion'] } &
+  { Organization: UU<NN<GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Organization'> } &
+  { Repository: UU<NN<GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'> } &
+  { Actor: NN<UU<NN<GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>['contributors']>[0] } &
+  { User: UU<NN<NN<UU<NN<GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>['contributors']>[0]>, 'User'> } &
+  { Organization: UU<NN<NN<UU<NN<GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>['contributors']>[0]>, 'Organization'> } &
+  { Query: GetExtendedFollowSuggestionsQuery }
+
+  export type TypeUsagesForGetSimpleFollowSuggestionsQuery = { Followable: GetSimpleFollowSuggestionsQuery['followSuggestion'] } &
+  { Organization: UU<NN<GetSimpleFollowSuggestionsQuery['followSuggestion']>, 'Organization'> } &
+  { Repository: UU<NN<GetSimpleFollowSuggestionsQuery['followSuggestion']>, 'Repository'> } &
+  { Query: GetSimpleFollowSuggestionsQuery }
+
   export type TypeUsagesForSubmitRepositoryMutation = { Entry: SubmitRepositoryMutation['submitRepository'] } &
   { Mutation: SubmitRepositoryMutation }
+
+  export type TypeUsagesForGetRepositoryContributorsQuery = { Repository: GetRepositoryContributorsQuery['repository'] } &
+  { Actor: NN<GetRepositoryContributorsQuery['repository']>['owner'] } &
+  { User: UU<NN<GetRepositoryContributorsQuery['repository']>['owner'], 'User'> } &
+  { Actor: NN<NN<GetRepositoryContributorsQuery['repository']>['contributors']>[0] } &
+  { User: UU<NN<NN<NN<GetRepositoryContributorsQuery['repository']>['contributors']>[0]>, 'User'> } &
+  { Organization: UU<NN<NN<NN<GetRepositoryContributorsQuery['repository']>['contributors']>[0]>, 'Organization'> } &
+  { Query: GetRepositoryContributorsQuery }
 
   export type TypeUsagesForSubmitCommentMutation = { Comment: SubmitCommentMutation['submitComment'] } &
   { Mutation: SubmitCommentMutation } &
@@ -75,11 +99,18 @@ export type TypeUsagesForCommentsPageCommentFragment = { User: CommentsPageComme
   { Mutation: VoteMutation }
 
 export interface OperationsMap {
+  'CommentsPageComment': { operationType: CommentsPageCommentFragment, variablesType: {}, typeUsages: TypeUsagesForCommentsPageCommentFragment, kind: 'fragment' }
+  'FeedEntry': { operationType: FeedEntryFragment, variablesType: {}, typeUsages: TypeUsagesForFeedEntryFragment, kind: 'fragment' }
+  'RepoInfo': { operationType: RepoInfoFragment, variablesType: {}, typeUsages: TypeUsagesForRepoInfoFragment, kind: 'fragment' }
+  'VoteButtons': { operationType: VoteButtonsFragment, variablesType: {}, typeUsages: TypeUsagesForVoteButtonsFragment, kind: 'fragment' }
   'onCommentAdded': { operationType: OnCommentAddedSubscription, variablesType: OnCommentAddedSubscriptionVariables, typeUsages: TypeUsagesForOnCommentAddedSubscription, kind: 'subscription' }
   'Comment': { operationType: CommentQuery, variablesType: CommentQueryVariables, typeUsages: TypeUsagesForCommentQuery, kind: 'query' }
   'CurrentUserForProfile': { operationType: CurrentUserForProfileQuery, variablesType: CurrentUserForProfileQueryVariables, typeUsages: TypeUsagesForCurrentUserForProfileQuery, kind: 'query' }
   'Feed': { operationType: FeedQuery, variablesType: FeedQueryVariables, typeUsages: TypeUsagesForFeedQuery, kind: 'query' }
+  'getExtendedFollowSuggestions': { operationType: GetExtendedFollowSuggestionsQuery, variablesType: GetExtendedFollowSuggestionsQueryVariables, typeUsages: TypeUsagesForGetExtendedFollowSuggestionsQuery, kind: 'query' }
+  'getSimpleFollowSuggestions': { operationType: GetSimpleFollowSuggestionsQuery, variablesType: GetSimpleFollowSuggestionsQueryVariables, typeUsages: TypeUsagesForGetSimpleFollowSuggestionsQuery, kind: 'query' }
   'submitRepository': { operationType: SubmitRepositoryMutation, variablesType: SubmitRepositoryMutationVariables, typeUsages: TypeUsagesForSubmitRepositoryMutation, kind: 'mutation' }
+  'getRepositoryContributors': { operationType: GetRepositoryContributorsQuery, variablesType: GetRepositoryContributorsQueryVariables, typeUsages: TypeUsagesForGetRepositoryContributorsQuery, kind: 'query' }
   'submitComment': { operationType: SubmitCommentMutation, variablesType: SubmitCommentMutationVariables, typeUsages: TypeUsagesForSubmitCommentMutation, kind: 'mutation' }
   'vote': { operationType: VoteMutation, variablesType: VoteMutationVariables, typeUsages: TypeUsagesForVoteMutation, kind: 'mutation' }
 }
@@ -98,7 +129,10 @@ export const documentsMap = {
   'Comment': { document: CommentDocument, kind: 'query' as const },
   'CurrentUserForProfile': { document: CurrentUserForProfileDocument, kind: 'query' as const },
   'Feed': { document: FeedDocument, kind: 'query' as const },
+  'getExtendedFollowSuggestions': { document: GetExtendedFollowSuggestionsDocument, kind: 'query' as const },
+  'getSimpleFollowSuggestions': { document: GetSimpleFollowSuggestionsDocument, kind: 'query' as const },
   'submitRepository': { document: SubmitRepositoryDocument, kind: 'mutation' as const },
+  'getRepositoryContributors': { document: GetRepositoryContributorsDocument, kind: 'query' as const },
   'submitComment': { document: SubmitCommentDocument, kind: 'mutation' as const },
   'vote': { document: VoteDocument, kind: 'mutation' as const }
 }",

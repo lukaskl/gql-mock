@@ -1,0 +1,38 @@
+query getExtendedFollowSuggestions {
+  followSuggestion {
+    ... on Organization {
+      avatarUrl
+      name
+      websiteUrl
+    }
+    ... on Repository {
+      name
+      htmlUrl
+      contributors {
+        avatarUrl
+        name
+        ... on User {
+          htmlUrl
+          login
+        }
+        ... on Organization {
+          websiteUrl
+        }
+      }
+    }
+  }
+}
+
+query getSimpleFollowSuggestions {
+  followSuggestion {
+    ... on Organization {
+      avatarUrl
+      name
+      websiteUrl
+    }
+    ... on Repository {
+      name
+      htmlUrl
+    }
+  }
+}

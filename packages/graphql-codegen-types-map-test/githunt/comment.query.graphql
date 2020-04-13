@@ -4,13 +4,13 @@ query Comment($repoFullName: String!, $limit: Int, $offset: Int) {
   # show upvote/downvote buttons
   currentUser {
     login
-    html_url
+    htmlUrl
   }
   entry(repoFullName: $repoFullName) {
     id
     postedBy {
       login
-      html_url
+      htmlUrl
     }
     createdAt
     comments(limit: $limit, offset: $offset) {
@@ -34,13 +34,13 @@ query Comment($repoFullName: String!, $limit: Int, $offset: Int) {
     }
     commentCount
     repository {
-      full_name
-      html_url
+      fullName
+      htmlUrl
 
       ... on Repository {
         description
-        open_issues_count
-        stargazers_count
+        openIssuesCount
+        stargazersCount
       }
     }
   }

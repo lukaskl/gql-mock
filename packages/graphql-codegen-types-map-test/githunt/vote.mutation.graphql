@@ -1,9 +1,9 @@
-mutation vote($repoFullName: String!, $type: VoteType!) {
-  vote(repoFullName: $repoFullName, type: $type) {
+mutation vote($args: VoteArgs!) {
+  vote(args: $args) {
     score
     id
     vote {
-      vote_value
+      voteValue
     }
   }
 }

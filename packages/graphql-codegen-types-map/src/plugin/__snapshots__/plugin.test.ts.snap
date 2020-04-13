@@ -10,6 +10,8 @@ exports[`TypeScript Operations Map Plugin Test 1 1`] = `
 exports[`TypeScript Operations Map Plugin Test 2 1`] = `
 "
 
+
+
 export interface FieldArgsUsagesMap {
   'Query': {
     search: QuerySearchArgs
@@ -38,6 +40,8 @@ export const documentsMap = {
 
 exports[`TypeScript Operations Map Plugin Test 3 1`] = `
 "
+
+
 
 export interface FieldArgsUsagesMap {
   'Query': {

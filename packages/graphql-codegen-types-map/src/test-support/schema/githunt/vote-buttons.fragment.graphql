@@ -1,6 +1,6 @@
 fragment VoteButtons on Entry {
   score
   vote {
-    vote_value
+    voteValue
   }
 }

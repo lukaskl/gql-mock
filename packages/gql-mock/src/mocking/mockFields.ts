@@ -209,9 +209,14 @@ function mockFields({ schema }: MockFieldsOptions): void {
 
       if (fieldType instanceof GraphQLUnionType || fieldType instanceof GraphQLInterfaceType) {
         // todo - implement this one
+        return { __typename: 'User' }
       }
 
-      throw new Error(`Unexpected parent type "${parentTypeName}" of ${path.join('.')}`)
+      throw new Error(
+        `Unexpected GraphQL type "${
+          fieldType?.constructor.name
+        }" of "${parentTypeName}.${fieldName}" at ${path.join('.')}`
+      )
     }
 
     field.resolve = newResolver

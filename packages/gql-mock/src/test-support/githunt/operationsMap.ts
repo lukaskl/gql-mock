@@ -9,6 +9,7 @@ export interface FieldArgsUsagesMap {
   Query: {
     feed: Types.QueryFeedArgs
     entry: Types.QueryEntryArgs
+    repository: Types.QueryRepositoryArgs
   }
   Entry: {
     comments: Types.EntryCommentsArgs
@@ -29,7 +30,7 @@ export type TypeUsagesForCommentsPageCommentFragment = {
 
 export type TypeUsagesForFeedEntryFragment = {
   Repository: Types.FeedEntryFragment['repository']
-} & { User: Types.FeedEntryFragment['repository']['owner'] } & {
+} & { Actor: Types.FeedEntryFragment['repository']['owner'] } & {
   Entry: Types.FeedEntryFragment
 } & TypeUsagesForVoteButtonsFragment &
   TypeUsagesForRepoInfoFragment
@@ -72,9 +73,60 @@ export type TypeUsagesForFeedQuery = {
   Query: Types.FeedQuery
 } & TypeUsagesForFeedEntryFragment
 
+export type TypeUsagesForGetExtendedFollowSuggestionsQuery = {
+  Followable: Types.GetExtendedFollowSuggestionsQuery['followSuggestion']
+} & {
+  Organization: UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Organization'>
+} & {
+  Repository: UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>
+} & {
+  Actor: NN<
+    UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>['contributors']
+  >[0]
+} & {
+  User: UU<
+    NN<
+      NN<UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>['contributors']>[0]
+    >,
+    'User'
+  >
+} & {
+  Organization: UU<
+    NN<
+      NN<UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>['contributors']>[0]
+    >,
+    'Organization'
+  >
+} & { Query: Types.GetExtendedFollowSuggestionsQuery }
+
+export type TypeUsagesForGetSimpleFollowSuggestionsQuery = {
+  Followable: Types.GetSimpleFollowSuggestionsQuery['followSuggestion']
+} & {
+  Organization: UU<NN<Types.GetSimpleFollowSuggestionsQuery['followSuggestion']>, 'Organization'>
+} & {
+  Repository: UU<NN<Types.GetSimpleFollowSuggestionsQuery['followSuggestion']>, 'Repository'>
+} & { Query: Types.GetSimpleFollowSuggestionsQuery }
+
 export type TypeUsagesForSubmitRepositoryMutation = {
   Entry: Types.SubmitRepositoryMutation['submitRepository']
 } & { Mutation: Types.SubmitRepositoryMutation }
+
+export type TypeUsagesForGetRepositoryContributorsQuery = {
+  Repository: Types.GetRepositoryContributorsQuery['repository']
+} & {
+  Actor: NN<Types.GetRepositoryContributorsQuery['repository']>['owner']
+} & {
+  User: UU<NN<Types.GetRepositoryContributorsQuery['repository']>['owner'], 'User'>
+} & {
+  Actor: NN<NN<Types.GetRepositoryContributorsQuery['repository']>['contributors']>[0]
+} & {
+  User: UU<NN<NN<NN<Types.GetRepositoryContributorsQuery['repository']>['contributors']>[0]>, 'User'>
+} & {
+  Organization: UU<
+    NN<NN<NN<Types.GetRepositoryContributorsQuery['repository']>['contributors']>[0]>,
+    'Organization'
+  >
+} & { Query: Types.GetRepositoryContributorsQuery }
 
 export type TypeUsagesForSubmitCommentMutation = {
   Comment: Types.SubmitCommentMutation['submitComment']
@@ -137,11 +189,29 @@ export interface OperationsMap {
     typeUsages: TypeUsagesForFeedQuery
     kind: 'query'
   }
+  getExtendedFollowSuggestions: {
+    operationType: Types.GetExtendedFollowSuggestionsQuery
+    variablesType: Types.GetExtendedFollowSuggestionsQueryVariables
+    typeUsages: TypeUsagesForGetExtendedFollowSuggestionsQuery
+    kind: 'query'
+  }
+  getSimpleFollowSuggestions: {
+    operationType: Types.GetSimpleFollowSuggestionsQuery
+    variablesType: Types.GetSimpleFollowSuggestionsQueryVariables
+    typeUsages: TypeUsagesForGetSimpleFollowSuggestionsQuery
+    kind: 'query'
+  }
   submitRepository: {
     operationType: Types.SubmitRepositoryMutation
     variablesType: Types.SubmitRepositoryMutationVariables
     typeUsages: TypeUsagesForSubmitRepositoryMutation
     kind: 'mutation'
+  }
+  getRepositoryContributors: {
+    operationType: Types.GetRepositoryContributorsQuery
+    variablesType: Types.GetRepositoryContributorsQueryVariables
+    typeUsages: TypeUsagesForGetRepositoryContributorsQuery
+    kind: 'query'
   }
   submitComment: {
     operationType: Types.SubmitCommentMutation
@@ -180,9 +250,21 @@ export const documentsMap = {
     kind: 'query' as const,
   },
   Feed: { document: Types.Feed, kind: 'query' as const },
+  getExtendedFollowSuggestions: {
+    document: Types.GetExtendedFollowSuggestions,
+    kind: 'query' as const,
+  },
+  getSimpleFollowSuggestions: {
+    document: Types.GetSimpleFollowSuggestions,
+    kind: 'query' as const,
+  },
   submitRepository: {
     document: Types.SubmitRepository,
     kind: 'mutation' as const,
+  },
+  getRepositoryContributors: {
+    document: Types.GetRepositoryContributors,
+    kind: 'query' as const,
   },
   submitComment: { document: Types.SubmitComment, kind: 'mutation' as const },
   vote: { document: Types.Vote, kind: 'mutation' as const },

@@ -1,6 +1,8 @@
 import { buildSchema } from 'graphql'
 
 export const schema = buildSchema(/* GraphQL */ `
+  scalar Date
+
   # A comment about an entry, submitted by a user
   type Comment {
     # The SQL ID of this entry
@@ -10,7 +12,7 @@ export const schema = buildSchema(/* GraphQL */ `
     postedBy: User!
 
     # A timestamp of when the comment was posted
-    createdAt: Float!
+    createdAt: Date!
 
     # The text of the comment
     content: String!
@@ -28,7 +30,7 @@ export const schema = buildSchema(/* GraphQL */ `
     postedBy: User!
 
     # A timestamp of when the entry was submitted
-    createdAt: Float!
+    createdAt: Date!
 
     # The score of this repository, upvotes - downvotes
     score: Int!
@@ -47,6 +49,8 @@ export const schema = buildSchema(/* GraphQL */ `
 
     # XXX to be changed
     vote: Vote!
+
+    type: FeedType!
   }
 
   # A list of options for the sort order of the feed
@@ -61,6 +65,14 @@ export const schema = buildSchema(/* GraphQL */ `
     TOP
   }
 
+  input VoteArgs {
+    # The full repository name from GitHub, e.g. "apollostack/GitHunt-API"
+    repoFullName: String!
+
+    # The type of vote - UP, DOWN, or CANCEL
+    type: VoteType!
+  }
+
   type Mutation {
     # Submit a new repository, returns the new submission
     submitRepository(
@@ -69,13 +81,7 @@ export const schema = buildSchema(/* GraphQL */ `
     ): Entry
 
     # Vote on a repository submission, returns the submission that was voted on
-    vote(
-      # The full repository name from GitHub, e.g. "apollostack/GitHunt-API"
-      repoFullName: String!
-
-      # The type of vote - UP, DOWN, or CANCEL
-      type: VoteType!
-    ): Entry
+    vote(args: VoteArgs!): Entry
 
     # Comment on a repository, returns the new comment
     submitComment(
@@ -87,11 +93,15 @@ export const schema = buildSchema(/* GraphQL */ `
     ): Comment
   }
 
+  union Followable = Organization | Repository
+
   type Query {
+    followSuggestion: Followable
+
     # A feed of repository submissions
     feed(
       # The sort order for the feed
-      type: FeedType!
+      type: FeedType = TOP
 
       # The number of items to skip, for pagination
       offset: Int
@@ -106,6 +116,12 @@ export const schema = buildSchema(/* GraphQL */ `
       repoFullName: String!
     ): Entry
 
+    # A single entry
+    repository(
+      # The full repository name from GitHub, e.g. "apollostack/GitHunt-API"
+      repoFullName: String!
+    ): Repository
+
     # Return the currently logged in user, or null if nobody is logged in
     currentUser: User
   }
@@ -117,22 +133,24 @@ export const schema = buildSchema(/* GraphQL */ `
     name: String!
 
     # The full name of the repository with the username, e.g. apollostack/GitHunt-API
-    full_name: String!
+    fullName: String!
 
     # The description of the repository
     description: String
 
     # The link to the repository on GitHub
-    html_url: String!
+    htmlUrl: String!
 
     # The number of people who have starred this repository on GitHub
-    stargazers_count: Int!
+    stargazersCount: Int!
 
     # The number of open issues on this repository on GitHub
-    open_issues_count: Int
+    openIssuesCount: Int
 
     # The owner of this repository on GitHub, e.g. apollostack
-    owner: User
+    owner: Actor!
+
+    contributors: [Actor]
   }
 
   type Subscription {
@@ -140,21 +158,43 @@ export const schema = buildSchema(/* GraphQL */ `
     commentAdded(repoFullName: String!): Comment
   }
 
+  interface Actor {
+    # The URL to a directly embeddable image for this actor's avatar
+    avatarUrl: String!
+
+    # Display name of the actor
+    name: String!
+  }
+
   # A user object from the GitHub API. This uses the exact field names returned from the GitHub API.
-  type User {
+  type User implements Actor {
     # The name of the user, e.g. apollostack
     login: String!
 
     # The URL to a directly embeddable image for this user's avatar
-    avatar_url: String!
+    avatarUrl: String!
 
     # The URL of this user's GitHub page
-    html_url: String!
+    htmlUrl: String!
+
+    # Display name of the User
+    name: String!
+  }
+
+  type Organization implements Actor {
+    # The URL to a directly embeddable image for this organizations' avatar
+    avatarUrl: String!
+
+    # Display name of the actor
+    name: String!
+
+    # The URL of this organization's website page
+    websiteUrl: String
   }
 
   # XXX to be removed
   type Vote {
-    vote_value: Int!
+    voteValue: Int!
   }
 
   # The type of vote to record, when submitting a vote
