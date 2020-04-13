@@ -10,7 +10,26 @@ exports[`TypeScript Operations Map Plugin Test 1 1`] = `
 exports[`TypeScript Operations Map Plugin Test 2 1`] = `
 "
 
-
+export type AllOutputTypes = {
+  'Query': Query
+  'User': User
+  'ID': Scalars[\\"ID\\"]
+  'String': Scalars[\\"String\\"]
+  'Profile': Profile
+  'Int': Scalars[\\"Int\\"]
+  'Role': Role
+  'MyUnion': MyUnion
+  'Notifiction': Notifiction
+  'AnyNotification': AnyNotification
+  'TextNotification': TextNotification
+  'ImageNotification': ImageNotification
+  'ImageMetadata': ImageMetadata
+  'SearchResult': SearchResult
+  'Mutation': Mutation
+  'Subscription': Subscription
+  'Boolean': Scalars[\\"Boolean\\"]
+  'DateTime': Scalars[\\"DateTime\\"]
+}
 
 export interface FieldArgsUsagesMap {
   'Query': {
@@ -31,6 +50,7 @@ export interface OperationsMap {
 export interface TypesMap {
   operations: OperationsMap
   fieldArgsUsages: FieldArgsUsagesMap
+  allOutputTypes: AllOutputTypes
 }
 
 export const documentsMap = {
@@ -41,7 +61,26 @@ export const documentsMap = {
 exports[`TypeScript Operations Map Plugin Test 3 1`] = `
 "
 
-
+export type AllOutputTypes = {
+  'Query': Query
+  'User': User
+  'ID': Scalars[\\"ID\\"]
+  'String': Scalars[\\"String\\"]
+  'Profile': Profile
+  'Int': Scalars[\\"Int\\"]
+  'Role': Role
+  'MyUnion': MyUnion
+  'Notifiction': Notifiction
+  'AnyNotification': AnyNotification
+  'TextNotification': TextNotification
+  'ImageNotification': ImageNotification
+  'ImageMetadata': ImageMetadata
+  'SearchResult': SearchResult
+  'Mutation': Mutation
+  'Subscription': Subscription
+  'Boolean': Scalars[\\"Boolean\\"]
+  'DateTime': Scalars[\\"DateTime\\"]
+}
 
 export interface FieldArgsUsagesMap {
   'Query': {
@@ -66,6 +105,7 @@ export interface OperationsMap {
 export interface TypesMap {
   operations: OperationsMap
   fieldArgsUsages: FieldArgsUsagesMap
+  allOutputTypes: AllOutputTypes
 }
 
 export const documentsMap = {

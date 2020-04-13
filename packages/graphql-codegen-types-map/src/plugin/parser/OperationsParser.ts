@@ -4,6 +4,7 @@ import { LazyGetter as Lazy } from 'lazy-get-decorator'
 import { getFragments, getOperations } from './getDefinitions'
 import { getFieldArgsUsageMap } from './getFieldArgsUsage'
 import { getTypeUsages } from './getTypeUsages'
+import { getAllOutputTypesMap } from './getOutputTypesMap'
 
 export class OperationsParser {
   readonly typeInfo: TypeInfo
@@ -36,5 +37,11 @@ export class OperationsParser {
   get fieldArgsUsages() {
     const { schema } = this
     return getFieldArgsUsageMap(schema)
+  }
+
+  @Lazy()
+  get outputTypes() {
+    const { schema } = this
+    return getAllOutputTypesMap(schema)
   }
 }

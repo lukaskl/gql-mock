@@ -3,6 +3,7 @@ import { parse } from 'esprima'
 import { OperationTypeNode } from 'graphql'
 import evaluate from 'static-eval'
 import { ERRORS, fromEntries } from '~/utils'
+import { GraphQLSchemaOutputTypes } from '../parser'
 
 const casingOperations = (Object.keys(changeCase) as (keyof typeof changeCase)[])
   .map(x => ({ [x]: changeCase[x] }))
@@ -19,7 +20,15 @@ export interface FieldArgsTemplateVariables {
   fieldName: string
 }
 
-export type TemplateVariables = FieldArgsTemplateVariables | OperationTemplateVariables
+export interface TypeAccessorTemplateVariables {
+  typeName: string
+  typeKind: GraphQLSchemaOutputTypes
+}
+
+export type TemplateVariables =
+  | FieldArgsTemplateVariables
+  | OperationTemplateVariables
+  | TypeAccessorTemplateVariables
 
 export const expandTemplate = <T extends TemplateVariables>(template: string, variables: T): string => {
   const ast = (parse('`' + template.replace(/{/g, '${') + '`').body[0] as any).expression
@@ -60,4 +69,10 @@ export const validateFieldArgsTemplate = (...templates: string[]) =>
   validateTemplate(templates, {
     fieldName: 'field-name',
     parentName: 'parent-name',
+  })
+
+export const validateTypeAccessorTemplate = (...templates: string[]) =>
+  validateTemplate(templates, {
+    typeKind: 'interface',
+    typeName: 'fake-name',
   })

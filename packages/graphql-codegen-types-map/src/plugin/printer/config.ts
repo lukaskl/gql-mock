@@ -1,4 +1,8 @@
-import { validateFieldArgsTemplate, validateOperationsTemplate } from './expandTemplate'
+import {
+  validateFieldArgsTemplate,
+  validateOperationsTemplate,
+  validateTypeAccessorTemplate,
+} from './expandTemplate'
 import merge from 'lodash.merge'
 import { pickKeys, KeysObj } from '~/utils'
 
@@ -13,7 +17,11 @@ export interface FieldArgsTemplateConfig {
   fieldArgsTypeTemplate: string
 }
 
-export type TemplatesConfig = OperationsTemplatesConfig & FieldArgsTemplateConfig
+export interface TypeAccessorTemplateConfig {
+  typeAccessorTypeTemplate: string
+}
+
+export type TemplatesConfig = OperationsTemplatesConfig & FieldArgsTemplateConfig & TypeAccessorTemplateConfig
 
 export interface TypesImportConfig {
   importTypesFrom: string | undefined
@@ -33,6 +41,7 @@ export const defaultConfig: AllConfigOptions = {
   variablesTypeTemplate: '{OperationName}{OperationKind}Variables',
   operationDocumentTemplate: '{OperationName}{OperationKind === "Fragment" ? "FragmentDoc" : "Document"}',
   operationKindTemplate: '{operationKind}',
+  typeAccessorTypeTemplate: '{typeKind === "scalar" ? `Scalars["{typeName}"]` : typeName }',
   importedTypesAlias: 'Types',
   importTypesFrom: undefined,
   typeUsagesTemplate: 'TypeUsagesFor{OperationName}{OperationKind}',
@@ -50,6 +59,9 @@ const operationsTemplatesConfigKeysObs: KeysObj<keyof OperationsTemplatesConfig>
 }
 const fieldArgsTemplatesConfigKeysObs: KeysObj<keyof FieldArgsTemplateConfig> = {
   fieldArgsTypeTemplate: null,
+}
+const typeAccessorTemplatesConfigKeysObs: KeysObj<keyof TypeAccessorTemplateConfig> = {
+  typeAccessorTypeTemplate: null,
 }
 const typesImportConfigKeysObs: KeysObj<keyof TypesImportConfig> = {
   importTypesFrom: null,
@@ -79,6 +91,10 @@ export class PrinterConfig {
     return this.pickConfigEntries(fieldArgsTemplatesConfigKeysObs)
   }
 
+  get typeAccessorTemplates() {
+    return this.pickConfigEntries(typeAccessorTemplatesConfigKeysObs)
+  }
+
   get importTypes() {
     const config = this.pickConfigEntries(typesImportConfigKeysObs)
     const importRef = config.importTypesFrom ? `${config.importedTypesAlias}.` : ''
@@ -92,6 +108,7 @@ export class PrinterConfig {
   validateConfig() {
     validateOperationsTemplate(...Object.values(this.operationTemplates))
     validateFieldArgsTemplate(...Object.values(this.fieldArgsTemplates))
+    validateTypeAccessorTemplate(...Object.values(this.typeAccessorTemplates))
   }
 
   private pickConfigEntries = <T extends keyof AllConfigOptions>(pick: KeysObj<T>) =>

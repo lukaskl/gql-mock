@@ -5,8 +5,8 @@
     "./dist",
     "./webpack.config.ts",
     "./cleanup-package-json.ts",
-    "./src/test-support/**/*",
-    "./**/*.test.*"
+    // "./src/test-support/**/*",
+    // "./**/*.test.*"
   ],
   "compilerOptions": {
     "target": "es5",

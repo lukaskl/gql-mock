@@ -36,6 +36,7 @@ generates:
           variablesTypeTemplate: '{OperationName}{OperationKind}Variables'
           operationKindTemplate: '{operationKind}'
           operationDocumentTemplate: '{OperationName}'
+          typeAccessorTypeTemplate: '{typeKind === "scalar" ? `Scalars["{typeName}"]` : typeName }'
           importTypesFrom: './gqlTypes'
     plugins:
       - add: '/* eslint-disable */'

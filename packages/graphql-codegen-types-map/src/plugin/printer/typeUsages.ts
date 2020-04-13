@@ -5,7 +5,7 @@ import { ERRORS } from '~/utils'
 
 import { expandTemplate, OperationTemplateVariables } from './expandTemplate'
 
-const printPathToType = (typePath: UsagePathNode[], typeStr = '') => {
+const printPathToType = (typePath: UsagePathNode[], typeStr = ''): string => {
   if (typePath.length === 0) return typeStr
   const [currentType, ...remaining] = typePath
   const { flattenParent, flattenType } = currentType

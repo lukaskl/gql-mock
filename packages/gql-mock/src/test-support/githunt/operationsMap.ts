@@ -5,6 +5,27 @@ type NN<T> = NonNullable<T>
 type UnwrapUnion<T, K> = T extends { __typename: K } ? T : never
 type UU<T, K> = UnwrapUnion<T, K>
 
+export type AllOutputTypes = {
+  Query: Types.Query
+  Followable: Types.Followable
+  Organization: Types.Organization
+  Actor: Types.Actor
+  String: Types.Scalars['String']
+  Repository: Types.Repository
+  Int: Types.Scalars['Int']
+  FeedType: Types.FeedType
+  Entry: Types.Entry
+  User: Types.User
+  Date: Types.Scalars['Date']
+  Float: Types.Scalars['Float']
+  Comment: Types.Comment
+  Vote: Types.Vote
+  Mutation: Types.Mutation
+  VoteType: Types.VoteType
+  Subscription: Types.Subscription
+  Boolean: Types.Scalars['Boolean']
+}
+
 export interface FieldArgsUsagesMap {
   Query: {
     feed: Types.QueryFeedArgs
@@ -230,6 +251,7 @@ export interface OperationsMap {
 export interface TypesMap {
   operations: OperationsMap
   fieldArgsUsages: FieldArgsUsagesMap
+  allOutputTypes: AllOutputTypes
 }
 
 export const documentsMap = {

@@ -43,6 +43,8 @@ export class OperationsMapPrinter {
     return mergeOutputs(
       '\n\n',
       this.commonPrependItems,
+
+      this.allOutputTypes,
       withTypeUsages ? this.fieldArgsUsages : emptyOutput,
       withTypeUsages ? this.typeUsages : emptyOutput,
       this.operationsMapInterface,
@@ -58,6 +60,7 @@ export class OperationsMapPrinter {
     const fields = [
       'operations: OperationsMap',
       `fieldArgsUsages: ${withTypeUsages ? 'FieldArgsUsagesMap' : '{}'}`,
+      `allOutputTypes: AllOutputTypes`,
     ].join('\n  ')
 
     return { content: `export interface TypesMap {\n  ${fields}\n}` }
@@ -154,5 +157,25 @@ export class OperationsMapPrinter {
       .join(',\n  ')
 
     return { content: `export const documentsMap = {\n  ${fields}\n}` }
+  }
+
+  @Lazy()
+  get allOutputTypes(): Types.ComplexPluginOutput {
+    const { parser, config } = this
+    const { outputTypes } = parser
+    const { typeAccessorTypeTemplate } = config.typeAccessorTemplates
+    const { importRef } = config.importTypes
+
+    const fields = outputTypes
+      .map(
+        ({ kind, name }) =>
+          `'${name}': ${importRef}${expandTemplate(typeAccessorTypeTemplate, {
+            typeKind: kind,
+            typeName: name,
+          })}`
+      )
+      .join('\n  ')
+
+    return { content: `export type AllOutputTypes = {\n  ${fields}\n}` }
   }
 }

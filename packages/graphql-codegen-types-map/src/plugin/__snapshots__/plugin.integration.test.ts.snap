@@ -5,7 +5,26 @@ Object {
   "append": Array [],
   "content": "
 
-
+export type AllOutputTypes = {
+  'Query': Query
+  'Followable': Followable
+  'Organization': Organization
+  'Actor': Actor
+  'String': Scalars[\\"String\\"]
+  'Repository': Repository
+  'Int': Scalars[\\"Int\\"]
+  'FeedType': FeedType
+  'Entry': Entry
+  'User': User
+  'Date': Scalars[\\"Date\\"]
+  'Float': Scalars[\\"Float\\"]
+  'Comment': Comment
+  'Vote': Vote
+  'Mutation': Mutation
+  'VoteType': VoteType
+  'Subscription': Subscription
+  'Boolean': Scalars[\\"Boolean\\"]
+}
 
 export interface FieldArgsUsagesMap {
   'Query': {
@@ -118,6 +137,7 @@ export interface OperationsMap {
 export interface TypesMap {
   operations: OperationsMap
   fieldArgsUsages: FieldArgsUsagesMap
+  allOutputTypes: AllOutputTypes
 }
 
 export const documentsMap = {
