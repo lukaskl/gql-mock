@@ -138,10 +138,14 @@ type OptionalSpread<T> = {} extends T ? [] | [T] : [T]
 const defaultMocks: TypeMocks = {
   Int: () => Math.round(Math.random() * 200) - 100,
   Float: () => Math.random() * 200 - 100,
-  String: () => 'Hello World',
+  String: 'Hello World',
   Boolean: () => Math.random() > 0.5,
   ID: () => uuid.v4(),
 }
+
+export type ResolvableValue<Context, T> =
+  | ((root: unknown, context: Context, args: {}, info: GraphQLResolveInfo) => T)
+  | T
 
 export const buildMocking = <
   TypesMap extends {
@@ -163,9 +167,15 @@ export const buildMocking = <
   type OperationResult<Operation extends OperationKeys> = TypesMap['operations'][Operation]['operationType']
   type ArgsMap<Type extends PropertyKey> = PickIfExists<TypesMap['fieldArgsUsages'], Type>
 
+  // TODO: support passing context value
+  type Context = {}
+
   type MockOptions<Operation extends OperationKeys> = {
     mocks?: {
-      [Type in keyof UsageTypes<Operation>]?: MockFields<UsageType<Operation, Type>, ArgsMap<Type>>
+      [Type in keyof UsageTypes<Operation>]?: ResolvableValue<
+        Context,
+        MockFields<UsageType<Operation, Type>, ArgsMap<Type>, Context>
+      >
     }
   } & RequireIfNotEmpty<'variables', Variables<Operation>>
 
@@ -202,12 +212,6 @@ export const buildMocking = <
       source: document,
       variableValues: optionsObj?.variables,
       contextValue: context,
-      fieldResolver: (root, args, context, info) => {
-        return ''
-      },
-      typeResolver: (root, args, context, info) => {
-        return ''
-      },
     })
     return result
   }

@@ -6,14 +6,91 @@ const { mock } = buildMocking<TypesMap>(schemas.builtSchema, documentsMap)
 
 const emptyArray = (length: number) => Array.from(Array(length)).map(() => ({}))
 
+/**
+ * TODOs:
+ *  - [ ] correctly type Type Resolver function
+ *  - [ ] support passing array of mocks
+ *  - [ ] correctly type ./mockFields.ts
+ *  - [ ] support enums
+ *  - [ ] support unions & interface
+ *
+ * non essential additions:
+ *  - [ ] support resolving fragments
+ *  - [ ] support passing context
+ *  - [ ] support async execution
+ *  - [ ] port tests from graphql-tools
+ */
+
 describe('', () => {
-  it('possible to use field arguments', () => {
-    const { data } = mock('Feed', {
-      mocks: { Query: { feed: (root, { limit }) => emptyArray(limit || 0) } },
-      variables: { type: 'TOP', limit: 3 },
+  describe('variations of passing the mocks', () => {
+    it('possible to pass function Type resolver and function field resolver', () => {
+      const { data } = mock('Feed', {
+        mocks: { Query: () => ({ feed: (root, { limit }) => emptyArray(limit || 0) }) },
+        variables: { type: 'TOP', limit: 3 },
+      })
+
+      expect(data?.feed).toHaveLength(3)
+      expect(data?.feed?.map(x => x?.__typename)).toEqual(['Entry', 'Entry', 'Entry'])
     })
 
-    expect(data?.feed).toHaveLength(3)
+    it('possible to pass function Type resolver and object field resolver', () => {
+      const { data } = mock('Feed', {
+        mocks: { Query: () => ({ feed: [{}, {}, {}] }) },
+        variables: { type: 'TOP' },
+      })
+
+      expect(data?.feed).toHaveLength(3)
+      expect(data?.feed?.map(x => x?.__typename)).toEqual(['Entry', 'Entry', 'Entry'])
+    })
+
+    it('possible to pass object Type resolver and function field resolver', () => {
+      const { data } = mock('Feed', {
+        mocks: { Query: { feed: (root, { limit }) => emptyArray(limit || 0) } },
+        variables: { type: 'TOP', limit: 3 },
+      })
+
+      expect(data?.feed).toHaveLength(3)
+      expect(data?.feed?.map(x => x?.__typename)).toEqual(['Entry', 'Entry', 'Entry'])
+    })
+
+    it('possible to pass object Type resolver and object field resolver', () => {
+      const { data } = mock('Feed', {
+        mocks: { Query: { feed: [{}, {}, {}] } },
+        variables: { type: 'TOP' },
+      })
+
+      expect(data?.feed).toHaveLength(3)
+      expect(data?.feed?.map(x => x?.__typename)).toEqual(['Entry', 'Entry', 'Entry'])
+    })
+  })
+
+  describe('resolvers invocation count', () => {
+    it('resolver functions are invoked once per type passing function Type resolver and function Field resolver', () => {
+      const fieldFn = jest.fn().mockReturnValue({})
+      const entryTypeFn = jest.fn().mockReturnValue({ postedBy: fieldFn })
+
+      const queryTypeFn = jest.fn().mockReturnValue({ feed: [{}, {}, {}] })
+
+      mock('Feed', {
+        mocks: { Query: queryTypeFn, Entry: entryTypeFn },
+        variables: { type: 'TOP' },
+      })
+
+      expect(queryTypeFn).toBeCalledTimes(1)
+      expect(entryTypeFn).toBeCalledTimes(3)
+      expect(fieldFn).toBeCalledTimes(3)
+    })
+
+    it('field resolver functions are invoked once per type passing object Type resolver and function field resolver', () => {
+      const fieldFn = jest.fn().mockReturnValue({})
+
+      mock('Feed', {
+        mocks: { Query: { feed: [{}, {}, {}] }, Entry: { postedBy: fieldFn } },
+        variables: { type: 'TOP' },
+      })
+
+      expect(fieldFn).toBeCalledTimes(3)
+    })
   })
 
   it('null passed to array the mock resolves to null', () => {
