@@ -11,6 +11,7 @@ import {
   getNamedType,
   GraphQLScalarType,
   GraphQLResolveInfo,
+  GraphQLNullableType,
 } from 'graphql'
 import { forEachField } from 'graphql-tools'
 import merge from 'lodash.merge'
@@ -45,7 +46,7 @@ type TypeMockResolvers = {
 }
 type TypeMock = { resolvers: TypeMockResolvers; preservePrevious: boolean }
 
-export interface MockOptions {
+export interface FieldMockOptions {
   cache: CacheMap
   mocks: TypeMock[]
 }
@@ -54,7 +55,22 @@ export interface MockFieldsOptions {
   schema: GraphQLSchema
 }
 
-export type MockingContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: MockOptions } & { [key in any]: unknown }
+const ERRORS = {
+  UnexpectedType: (
+    type: GraphQLNullableType,
+    parentTypeName: string,
+    fieldName: string | number,
+    path: (string | number)[]
+  ) => {
+    throw new Error(
+      `Unexpected GraphQL type "${type?.constructor.name}" of "${parentTypeName}.${fieldName}" at ${path.join(
+        '.'
+      )}`
+    )
+  },
+}
+
+export type MockingContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: FieldMockOptions } & { [key in any]: unknown }
 
 /**
  * @description
@@ -99,13 +115,14 @@ const getCached = (
   return resolved
 }
 
-type MagicContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: MockOptions } & { [key in any]: unknown }
+type MagicContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: FieldMockOptions } & { [key in any]: unknown }
 
 const getTypeMockResolver = <T extends PossibleResolvedValued>(
-  mockOptions: MockOptions,
+  mockOptions: FieldMockOptions,
   info: GraphQLResolveInfo,
   forType: string,
-  interfaceTypes: string[] = []
+  interfaceTypes: string[] = [],
+  takeFirstResolverOnly = false
 ): Resolvable<T> => {
   const { cache } = mockOptions
   throw new Error('not implemented')
@@ -143,13 +160,13 @@ function mockFields({ schema }: MockFieldsOptions): void {
        * And we assume that nested value takes higher
        * priority than broader resolver
        */
-
       // TODO: can this value be a resolver function? E.g. passed by deeply nesting
+      // if it is - should we throw an error?
       const existingValue = ((root as any) || {})[fieldName] as PossibleResolvedValued
 
       const { [MAGIC_CONTEXT_MOCKS]: options, ...restContext } = context || {}
 
-      const augmentedMocks: MockOptions = {
+      const augmentedMocks: FieldMockOptions = {
         ...options,
         mocks: [{ preservePrevious: false, resolvers: { [parentTypeName]: oldResolver } }, ...options.mocks],
       }
@@ -157,8 +174,8 @@ function mockFields({ schema }: MockFieldsOptions): void {
       const resolvableValue = getTypeMockResolver(
         augmentedMocks,
         info,
-        parentTypeName
-        // TODO: collect and pass typenames of all possible interfaces
+        parentTypeName,
+        fieldType instanceof GraphQLObjectType ? fieldType.getInterfaces().map(x => x.name) : []
       )
 
       const resolve = <T extends PossibleResolvedValued>(fnOrObj: Resolvable<T>): T | undefined =>
@@ -182,7 +199,7 @@ function mockFields({ schema }: MockFieldsOptions): void {
         // TODO: indicate it is scalar
         // by doing so we can short-circuit resolvers merging
         // as we know that only the last one will "win"
-        const resolvableScalar = getTypeMockResolver(augmentedMocks, info, fieldTypeName)
+        const resolvableScalar = getTypeMockResolver(augmentedMocks, info, fieldTypeName, [], true)
 
         if (!resolvableScalar) {
           throw new Error(`No mock provided for scalar type "${fieldTypeName}" at path: ${path.join('.')}`)
@@ -208,32 +225,51 @@ function mockFields({ schema }: MockFieldsOptions): void {
           if (result !== undefined) return result
         }
 
-        if (!resolvableField) {
-          // TODO: resolve mock
-          // if value is not provided - pick first value from the enum
-          throw new Error('not implemented')
+        const resolvableEnum = getTypeMockResolver(augmentedMocks, info, fieldTypeName, [], true)
+
+        const result = resolve(resolvableEnum)
+        if (result === undefined) {
+          if (true as any) {
+            throw new Error('not implemented - validate enum behavior')
+          }
+
+          const firstValue = fieldType.getValues()[0]?.name
+          if (firstValue === undefined) {
+            throw new Error(`Something is wrong with enum "${fieldType.inspect()}", could get values`)
+          }
+          return firstValue
         }
 
-        throw new Error('not implemented')
-        // return resolvedTypeMock
+        return result
       }
 
       if (fieldType instanceof GraphQLList) {
-        // TODO: validate or fix default fallback value for items
-        // {} makes sense for the list of objects,
-        // however, it can be a list of enums, scalars
-        const fallbackItemValue = () => ({})
-        const fallbackValue = () => [fallbackItemValue(), fallbackItemValue()]
+        const itemType = getNamedType(fieldType)
+        const fallbackItemValue = (position: number) => {
+          if (
+            itemType instanceof GraphQLUnionType ||
+            itemType instanceof GraphQLInterfaceType ||
+            itemType instanceof GraphQLObjectType
+          ) {
+            return {}
+          }
+          if (itemType instanceof GraphQLEnumType || itemType instanceof GraphQLScalarType) {
+            // TODO: recursively resolve enums and scalars
+            throw new Error('not implemented - resolve scalars within the list')
+          }
+
+          return ERRORS.UnexpectedType(itemType, parentTypeName, fieldName, [...path, position])
+        }
+        const fallbackValue = () => [fallbackItemValue(0), fallbackItemValue(1)]
 
         if (resolvableField) {
           const result: any[] | undefined = existingValue
             ? merge([], resolve(resolvableField), existingValue)
             : resolve(resolvableField as Resolvable<any[]>)
-          // TODO: write tests for this part
-          // what happens if fieldMock returns null / undefined / any other value
+
           return result === undefined
             ? fallbackValue()
-            : result.map(x => (x === undefined ? fallbackItemValue() : x))
+            : result.map((x, i) => (x === undefined ? fallbackItemValue(i) : x))
         }
 
         return resolvableField === undefined ? fallbackValue() : resolvableField
@@ -256,11 +292,7 @@ function mockFields({ schema }: MockFieldsOptions): void {
         return { __typename: 'User' }
       }
 
-      throw new Error(
-        `Unexpected GraphQL type "${
-          fieldType?.constructor.name
-        }" of "${parentTypeName}.${fieldName}" at ${path.join('.')}`
-      )
+      return ERRORS.UnexpectedType(fieldType, parentTypeName, fieldName, path)
     }
 
     field.resolve = newResolver
