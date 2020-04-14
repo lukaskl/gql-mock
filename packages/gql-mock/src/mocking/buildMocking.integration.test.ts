@@ -1,17 +1,13 @@
 import { buildMocking } from './buildMocking'
 import { documentsMap, schemas, TypesMap } from '~/test-support/githunt'
 
-const { mock } = buildMocking<TypesMap>(schemas.builtSchema, documentsMap, {
-  mocks: { Date: () => new Date() },
-})
-
 const emptyArray = (length: number) => Array.from(Array(length)).map(() => ({}))
 
 /**
  * TODOs:
  *  - [x] support passing array of mocks
  *  - [x] support enums
- *  - [ ] support unions & interface
+ *  - [x] support unions & interface
  *  - [x] correctly type ./mockFields.ts & ./buildMocking
  *
  * non essential additions:
@@ -22,6 +18,10 @@ const emptyArray = (length: number) => Array.from(Array(length)).map(() => ({}))
  */
 
 describe('', () => {
+  const { mock } = buildMocking<TypesMap>(schemas.typeDefs, documentsMap, {
+    mocks: { Date: () => new Date(), Actor: { __typename: 'User' } as any },
+  })
+
   describe('variations of passing the mocks', () => {
     it('possible to pass function Type resolver and function field resolver', () => {
       const { data, errors } = mock('Feed', {
@@ -130,32 +130,30 @@ describe('', () => {
       expect(data?.feed?.[0]?.__typename).toBe('Entry')
     })
 
-    describe('basic types resolving', () => {
-      it('possible to resolve list of scalars', () => {
-        const { data, errors } = mock('getListOfScalars', {
-          mocks: { Query: { latestErrorCodes: [undefined, null, 500] } },
-        })
-
-        expect(errors).toBeFalsy()
-        expect(data?.latestErrorCodes).toHaveLength(3)
-        expect(typeof data?.latestErrorCodes?.[0]).toBe('number')
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        expect(Math.trunc(data?.latestErrorCodes?.[0]!)).toBeCloseTo(data?.latestErrorCodes?.[0]!, 4)
-        expect(data?.latestErrorCodes?.[1]).toBe(null)
-        expect(data?.latestErrorCodes?.[2]).toBe(500)
+    it('possible to resolve list of scalars', () => {
+      const { data, errors } = mock('getListOfScalars', {
+        mocks: { Query: { latestErrorCodes: [undefined, null, 500] } },
       })
 
-      it('possible to resolve list of enums', () => {
-        const { data, errors } = mock('getListOfEnums', {
-          mocks: { Query: { possibleFeedTypes: ['NEW', undefined, null] } },
-        })
+      expect(errors).toBeFalsy()
+      expect(data?.latestErrorCodes).toHaveLength(3)
+      expect(typeof data?.latestErrorCodes?.[0]).toBe('number')
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      expect(Math.trunc(data?.latestErrorCodes?.[0]!)).toBeCloseTo(data?.latestErrorCodes?.[0]!, 4)
+      expect(data?.latestErrorCodes?.[1]).toBe(null)
+      expect(data?.latestErrorCodes?.[2]).toBe(500)
+    })
 
-        expect(errors).toBeFalsy()
-        expect(data?.possibleFeedTypes).toHaveLength(3)
-        expect(data?.possibleFeedTypes?.[0]).toBe('NEW')
-        expect(data?.possibleFeedTypes?.[1]).toBe('HOT')
-        expect(data?.possibleFeedTypes?.[2]).toBe(null)
+    it('possible to resolve list of enums', () => {
+      const { data, errors } = mock('getListOfEnums', {
+        mocks: { Query: { possibleFeedTypes: ['NEW', undefined, null] } },
       })
+
+      expect(errors).toBeFalsy()
+      expect(data?.possibleFeedTypes).toHaveLength(3)
+      expect(data?.possibleFeedTypes?.[0]).toBe('NEW')
+      expect(data?.possibleFeedTypes?.[1]).toBe('HOT')
+      expect(data?.possibleFeedTypes?.[2]).toBe(null)
     })
   })
 
@@ -200,5 +198,73 @@ describe('', () => {
 
     expect(data?.entry?.comments[1]?.postedBy.login).toBe('fake-Comment.postedBy.login')
     expect(data?.entry?.comments[1]?.postedBy.htmlUrl).toBe('fake-Comment.postedBy.html-url')
+  })
+})
+
+describe('mocking abstract types', () => {
+  const { mock } = buildMocking<TypesMap>(schemas.typeDefs, documentsMap, {
+    mocks: { Date: () => new Date() },
+  })
+  it('possible to resolve list of unions', () => {
+    const { data, errors } = mock('getSimpleFollowSuggestions', {
+      mocks: {
+        Query: { followSuggestions: [{ __typename: 'Repository' }, {}, null, undefined] },
+        Followable: { __typename: 'Organization' },
+      },
+    })
+
+    expect(errors).toBeFalsy()
+    expect(data?.followSuggestions?.[0]).toMatchObject({ htmlUrl: 'Hello World', __typename: 'Repository' })
+    expect(data?.followSuggestions?.[1]).toMatchObject({
+      websiteUrl: 'Hello World',
+      __typename: 'Organization',
+    })
+    expect(data?.followSuggestions?.[2]).toBe(null)
+    expect(data?.followSuggestions?.[3]).toMatchObject({
+      websiteUrl: 'Hello World',
+      __typename: 'Organization',
+    })
+  })
+  it('resolving list of unions returns an error if no __typename fields are passed', () => {
+    const { errors } = mock('getSimpleFollowSuggestions', {
+      mocks: { Query: { followSuggestions: [{ __typename: 'Repository' }, {}, null, undefined] } },
+    })
+
+    expect(errors?.[0].message).toBe(
+      'A mock providing "__typename" property for type Followable is required, error at followSuggestions.1'
+    )
+    expect(errors).toHaveLength(1)
+  })
+  it('possible to resolve list of interfaces', () => {
+    const { data, errors } = mock('getExtendedFollowSuggestion', {
+      mocks: {
+        Repository: { contributors: [{ __typename: 'Organization' }, {}, null, undefined] },
+        Followable: { __typename: 'Repository' },
+        Actor: { __typename: 'User' },
+      },
+    })
+
+    expect(errors).toBeFalsy()
+    const contributors =
+      (data?.followSuggestion?.__typename === 'Repository' && data.followSuggestion.contributors) || []
+    expect(contributors).toHaveLength(4)
+    expect(contributors?.[0]).toMatchObject({ websiteUrl: 'Hello World', __typename: 'Organization' })
+    expect(contributors?.[1]).toMatchObject({ login: 'Hello World', __typename: 'User' })
+    expect(contributors?.[2]).toBe(null)
+    expect(contributors?.[3]).toMatchObject({ login: 'Hello World', __typename: 'User' })
+  })
+
+  it('resolving list of interfaces returns an error if no __typename fields are passed', () => {
+    const { errors } = mock('getExtendedFollowSuggestion', {
+      mocks: {
+        Repository: { contributors: [{ __typename: 'Organization' }, {}, null, undefined] },
+        Followable: { __typename: 'Repository' },
+      },
+    })
+
+    expect(errors?.[0].message).toBe(
+      'A mock providing "__typename" property for type Actor is required, error at followSuggestion.contributors.1'
+    )
+    expect(errors).toHaveLength(1)
   })
 })

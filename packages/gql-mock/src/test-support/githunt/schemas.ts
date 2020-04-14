@@ -97,6 +97,7 @@ export const typeDefs = /* GraphQL */ `
 
   type Query {
     followSuggestion: Followable
+    followSuggestions: [Followable]
 
     latestErrorCodes: [Int]
     possibleFeedTypes: [FeedType]

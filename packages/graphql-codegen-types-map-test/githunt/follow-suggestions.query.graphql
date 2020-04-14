@@ -1,38 +1,58 @@
-query getExtendedFollowSuggestions {
-  followSuggestion {
-    ... on Organization {
+fragment ExtendedFollowable on Followable {
+  ... on Organization {
+    avatarUrl
+    name
+    websiteUrl
+  }
+  ... on Repository {
+    name
+    htmlUrl
+    contributors {
       avatarUrl
       name
-      websiteUrl
-    }
-    ... on Repository {
-      name
-      htmlUrl
-      contributors {
-        avatarUrl
-        name
-        ... on User {
-          htmlUrl
-          login
-        }
-        ... on Organization {
-          websiteUrl
-        }
+      ... on User {
+        htmlUrl
+        login
+      }
+      ... on Organization {
+        websiteUrl
       }
     }
   }
 }
 
+fragment SimpleFollowable on Followable {
+  ... on Organization {
+    avatarUrl
+    name
+    websiteUrl
+  }
+  ... on Repository {
+    name
+    htmlUrl
+  }
+}
+
+query getExtendedFollowSuggestions {
+  followSuggestions {
+    ...ExtendedFollowable
+  }
+}
+
 query getSimpleFollowSuggestions {
+  followSuggestions {
+    ...SimpleFollowable
+  }
+}
+
+query getExtendedFollowSuggestion {
   followSuggestion {
-    ... on Organization {
-      avatarUrl
-      name
-      websiteUrl
-    }
-    ... on Repository {
-      name
-      htmlUrl
-    }
+    ...ExtendedFollowable
+  }
+}
+
+query getSimpleFollowSuggestion {
+  followSuggestion {
+    ...SimpleFollowable
   }
 }

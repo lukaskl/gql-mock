@@ -125,10 +125,13 @@ const getTypeMockResolver = (
   }
 
   const cachedResolver: ResolveFn<PossibleResolvedValued> = (...args) =>
-    getCached(cache, cacheKey, () => normalizedResolver(...args))
+    getCached(cache, [...cacheKey, forType], () => normalizedResolver(...args))
 
   return cachedResolver
 }
+
+const isValidAbstract = (item: PossibleResolvedValued) =>
+  typeof item === 'object' && item && !!(item as { [key: string]: any })['__typename']
 
 interface ResolveTypeParams<Context extends {} = { [key in any]: unknown }> {
   type: GraphQLNullableType
@@ -200,16 +203,19 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
   }
 
   if (type instanceof GraphQLList) {
+    // TODO: check this with nested lists, e.g. [[Int]]
     const itemType = getNamedType(type)
+    const isNestedList = getNullableType(type.ofType) instanceof GraphQLList
     const fallbackItemValue = (position: number) => {
+      if (itemType instanceof GraphQLObjectType) {
+        return {}
+      }
       if (
         itemType instanceof GraphQLUnionType ||
         itemType instanceof GraphQLInterfaceType ||
-        itemType instanceof GraphQLObjectType
+        itemType instanceof GraphQLEnumType ||
+        itemType instanceof GraphQLScalarType
       ) {
-        return {}
-      }
-      if (itemType instanceof GraphQLEnumType || itemType instanceof GraphQLScalarType) {
         // TODO: recursively resolve enums and scalars
         // throw new Error('not implemented - resolve scalars within the list')
         return resolveType({
@@ -224,7 +230,18 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
       return onUnexpectedType(itemType, [...path, position])
     }
     const fallbackValue = () => [fallbackItemValue(0), fallbackItemValue(1)]
-
+    const shouldFallback = (item: PossibleResolvedValued) => {
+      if (item === undefined) return true
+      if (item === null) return false
+      if (isNestedList) return true
+      if (
+        (itemType instanceof GraphQLUnionType || itemType instanceof GraphQLInterfaceType) &&
+        !isValidAbstract(item)
+      ) {
+        return true
+      }
+      return false
+    }
     if (resolvableValue) {
       const result: any[] | undefined = existingValue
         ? merge([], resolve(resolvableValue), existingValue)
@@ -232,7 +249,7 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
 
       return result === undefined
         ? fallbackValue()
-        : result.map((x, i) => (x === undefined ? fallbackItemValue(i) : x))
+        : result.map((x, i) => (shouldFallback(x) ? fallbackItemValue(i) : x))
     }
 
     return resolvableValue === undefined ? fallbackValue() : resolvableValue
@@ -251,8 +268,22 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
   }
 
   if (type instanceof GraphQLUnionType || type instanceof GraphQLInterfaceType) {
-    // todo - implement this one
-    return { __typename: 'User' }
+    if (resolvableValue) {
+      const result = existingValue
+        ? merge({}, resolve(resolvableValue), existingValue)
+        : resolve(resolvableValue)
+      if (result !== undefined) return result
+    }
+
+    const resolvableAbstract = getResolver(typeName, path, [], true)
+    const result = resolve(resolvableAbstract)
+    if (result === undefined || !isValidAbstract(result)) {
+      throw new Error(
+        `A mock providing "__typename" property for type ${typeName} is required, error at ${path.join('.')}`
+      )
+    }
+
+    return result
   }
 
   return onUnexpectedType(type, path)

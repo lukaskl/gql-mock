@@ -59,6 +59,25 @@ export type TypeUsagesForFeedEntryFragment = {
 } & TypeUsagesForVoteButtonsFragment &
   TypeUsagesForRepoInfoFragment
 
+export type TypeUsagesForExtendedFollowableFragment = {
+  Organization: UU<Types.ExtendedFollowableFragment, 'Organization'>
+} & { Repository: UU<Types.ExtendedFollowableFragment, 'Repository'> } & {
+  Actor: NN<UU<Types.ExtendedFollowableFragment, 'Repository'>['contributors']>[0]
+} & {
+  User: UU<NN<NN<UU<Types.ExtendedFollowableFragment, 'Repository'>['contributors']>[0]>, 'User'>
+} & {
+  Organization: UU<
+    NN<NN<UU<Types.ExtendedFollowableFragment, 'Repository'>['contributors']>[0]>,
+    'Organization'
+  >
+} & { Followable: Types.ExtendedFollowableFragment }
+
+export type TypeUsagesForSimpleFollowableFragment = {
+  Organization: UU<Types.SimpleFollowableFragment, 'Organization'>
+} & { Repository: UU<Types.SimpleFollowableFragment, 'Repository'> } & {
+  Followable: Types.SimpleFollowableFragment
+}
+
 export type TypeUsagesForRepoInfoFragment = {
   Repository: Types.RepoInfoFragment['repository']
 } & { User: Types.RepoInfoFragment['postedBy'] } & {
@@ -98,38 +117,28 @@ export type TypeUsagesForFeedQuery = {
 } & TypeUsagesForFeedEntryFragment
 
 export type TypeUsagesForGetExtendedFollowSuggestionsQuery = {
-  Followable: Types.GetExtendedFollowSuggestionsQuery['followSuggestion']
+  Followable: NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestions']>[0]
 } & {
-  Organization: UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Organization'>
-} & {
-  Repository: UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>
-} & {
-  Actor: NN<
-    UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>['contributors']
-  >[0]
-} & {
-  User: UU<
-    NN<
-      NN<UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>['contributors']>[0]
-    >,
-    'User'
-  >
-} & {
-  Organization: UU<
-    NN<
-      NN<UU<NN<Types.GetExtendedFollowSuggestionsQuery['followSuggestion']>, 'Repository'>['contributors']>[0]
-    >,
-    'Organization'
-  >
-} & { Query: Types.GetExtendedFollowSuggestionsQuery }
+  Query: Types.GetExtendedFollowSuggestionsQuery
+} & TypeUsagesForExtendedFollowableFragment
 
 export type TypeUsagesForGetSimpleFollowSuggestionsQuery = {
-  Followable: Types.GetSimpleFollowSuggestionsQuery['followSuggestion']
+  Followable: NN<Types.GetSimpleFollowSuggestionsQuery['followSuggestions']>[0]
 } & {
-  Organization: UU<NN<Types.GetSimpleFollowSuggestionsQuery['followSuggestion']>, 'Organization'>
+  Query: Types.GetSimpleFollowSuggestionsQuery
+} & TypeUsagesForSimpleFollowableFragment
+
+export type TypeUsagesForGetExtendedFollowSuggestionQuery = {
+  Followable: Types.GetExtendedFollowSuggestionQuery['followSuggestion']
 } & {
-  Repository: UU<NN<Types.GetSimpleFollowSuggestionsQuery['followSuggestion']>, 'Repository'>
-} & { Query: Types.GetSimpleFollowSuggestionsQuery }
+  Query: Types.GetExtendedFollowSuggestionQuery
+} & TypeUsagesForExtendedFollowableFragment
+
+export type TypeUsagesForGetSimpleFollowSuggestionQuery = {
+  Followable: Types.GetSimpleFollowSuggestionQuery['followSuggestion']
+} & {
+  Query: Types.GetSimpleFollowSuggestionQuery
+} & TypeUsagesForSimpleFollowableFragment
 
 export type TypeUsagesForSubmitRepositoryMutation = {
   Entry: Types.SubmitRepositoryMutation['submitRepository']
@@ -185,6 +194,18 @@ export interface OperationsMap {
     typeUsages: TypeUsagesForFeedEntryFragment
     kind: 'fragment'
   }
+  ExtendedFollowable: {
+    operationType: Types.ExtendedFollowableFragment
+    variablesType: {}
+    typeUsages: TypeUsagesForExtendedFollowableFragment
+    kind: 'fragment'
+  }
+  SimpleFollowable: {
+    operationType: Types.SimpleFollowableFragment
+    variablesType: {}
+    typeUsages: TypeUsagesForSimpleFollowableFragment
+    kind: 'fragment'
+  }
   RepoInfo: {
     operationType: Types.RepoInfoFragment
     variablesType: {}
@@ -231,6 +252,18 @@ export interface OperationsMap {
     operationType: Types.GetSimpleFollowSuggestionsQuery
     variablesType: Types.GetSimpleFollowSuggestionsQueryVariables
     typeUsages: TypeUsagesForGetSimpleFollowSuggestionsQuery
+    kind: 'query'
+  }
+  getExtendedFollowSuggestion: {
+    operationType: Types.GetExtendedFollowSuggestionQuery
+    variablesType: Types.GetExtendedFollowSuggestionQueryVariables
+    typeUsages: TypeUsagesForGetExtendedFollowSuggestionQuery
+    kind: 'query'
+  }
+  getSimpleFollowSuggestion: {
+    operationType: Types.GetSimpleFollowSuggestionQuery
+    variablesType: Types.GetSimpleFollowSuggestionQueryVariables
+    typeUsages: TypeUsagesForGetSimpleFollowSuggestionQuery
     kind: 'query'
   }
   submitRepository: {
@@ -284,6 +317,14 @@ export const documentsMap = {
     kind: 'fragment' as const,
   },
   FeedEntry: { document: Types.FeedEntry, kind: 'fragment' as const },
+  ExtendedFollowable: {
+    document: Types.ExtendedFollowable,
+    kind: 'fragment' as const,
+  },
+  SimpleFollowable: {
+    document: Types.SimpleFollowable,
+    kind: 'fragment' as const,
+  },
   RepoInfo: { document: Types.RepoInfo, kind: 'fragment' as const },
   VoteButtons: { document: Types.VoteButtons, kind: 'fragment' as const },
   onCommentAdded: {
@@ -302,6 +343,14 @@ export const documentsMap = {
   },
   getSimpleFollowSuggestions: {
     document: Types.GetSimpleFollowSuggestions,
+    kind: 'query' as const,
+  },
+  getExtendedFollowSuggestion: {
+    document: Types.GetExtendedFollowSuggestion,
+    kind: 'query' as const,
+  },
+  getSimpleFollowSuggestion: {
+    document: Types.GetSimpleFollowSuggestion,
     kind: 'query' as const,
   },
   submitRepository: {

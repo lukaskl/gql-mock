@@ -94,6 +94,7 @@ union Followable = Organization | Repository
 
 type Query {
   followSuggestion: Followable
+  followSuggestions: [Followable]
 
   latestErrorCodes: [Int]
   possibleFeedTypes: [FeedType]
@@ -116,7 +117,7 @@ type Query {
     repoFullName: String!
   ): Entry
 
-    # A single entry
+  # A single entry
   repository(
     # The full repository name from GitHub, e.g. "apollostack/GitHunt-API"
     repoFullName: String!

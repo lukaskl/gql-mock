@@ -111,6 +111,7 @@ export type Organization = Actor & {
 export type Query = {
   __typename: 'Query'
   followSuggestion: Maybe<Followable>
+  followSuggestions: Maybe<Array<Maybe<Followable>>>
   latestErrorCodes: Maybe<Array<Maybe<Scalars['Int']>>>
   possibleFeedTypes: Maybe<Array<Maybe<FeedType>>>
   /** A feed of repository submissions */
@@ -264,30 +265,89 @@ export type FeedQuery = { __typename: 'Query' } & {
   feed?: Maybe<Array<Maybe<{ __typename: 'Entry' } & FeedEntryFragment>>>
 }
 
+type ExtendedFollowable_Organization_Fragment = {
+  __typename: 'Organization'
+} & Pick<Organization, 'avatarUrl' | 'name' | 'websiteUrl'>
+
+type ExtendedFollowable_Repository_Fragment = {
+  __typename: 'Repository'
+} & Pick<Repository, 'name' | 'htmlUrl'> & {
+    contributors?: Maybe<
+      Array<
+        Maybe<
+          | ({ __typename: 'Organization' } & Pick<Organization, 'websiteUrl' | 'avatarUrl' | 'name'>)
+          | ({ __typename: 'User' } & Pick<User, 'htmlUrl' | 'login' | 'avatarUrl' | 'name'>)
+        >
+      >
+    >
+  }
+
+export type ExtendedFollowableFragment =
+  | ExtendedFollowable_Organization_Fragment
+  | ExtendedFollowable_Repository_Fragment
+
+type SimpleFollowable_Organization_Fragment = {
+  __typename: 'Organization'
+} & Pick<Organization, 'avatarUrl' | 'name' | 'websiteUrl'>
+
+type SimpleFollowable_Repository_Fragment = { __typename: 'Repository' } & Pick<
+  Repository,
+  'name' | 'htmlUrl'
+>
+
+export type SimpleFollowableFragment =
+  | SimpleFollowable_Organization_Fragment
+  | SimpleFollowable_Repository_Fragment
+
 export type GetExtendedFollowSuggestionsQueryVariables = {}
 
 export type GetExtendedFollowSuggestionsQuery = { __typename: 'Query' } & {
-  followSuggestion?: Maybe<
-    | ({ __typename: 'Organization' } & Pick<Organization, 'avatarUrl' | 'name' | 'websiteUrl'>)
-    | ({ __typename: 'Repository' } & Pick<Repository, 'name' | 'htmlUrl'> & {
-          contributors?: Maybe<
-            Array<
-              Maybe<
-                | ({ __typename: 'Organization' } & Pick<Organization, 'websiteUrl' | 'avatarUrl' | 'name'>)
-                | ({ __typename: 'User' } & Pick<User, 'htmlUrl' | 'login' | 'avatarUrl' | 'name'>)
-              >
-            >
-          >
-        })
+  followSuggestions?: Maybe<
+    Array<
+      Maybe<
+        | ({
+            __typename: 'Organization'
+          } & ExtendedFollowable_Organization_Fragment)
+        | ({
+            __typename: 'Repository'
+          } & ExtendedFollowable_Repository_Fragment)
+      >
+    >
   >
 }
 
 export type GetSimpleFollowSuggestionsQueryVariables = {}
 
 export type GetSimpleFollowSuggestionsQuery = { __typename: 'Query' } & {
+  followSuggestions?: Maybe<
+    Array<
+      Maybe<
+        | ({
+            __typename: 'Organization'
+          } & SimpleFollowable_Organization_Fragment)
+        | ({ __typename: 'Repository' } & SimpleFollowable_Repository_Fragment)
+      >
+    >
+  >
+}
+
+export type GetExtendedFollowSuggestionQueryVariables = {}
+
+export type GetExtendedFollowSuggestionQuery = { __typename: 'Query' } & {
   followSuggestion?: Maybe<
-    | ({ __typename: 'Organization' } & Pick<Organization, 'avatarUrl' | 'name' | 'websiteUrl'>)
-    | ({ __typename: 'Repository' } & Pick<Repository, 'name' | 'htmlUrl'>)
+    | ({
+        __typename: 'Organization'
+      } & ExtendedFollowable_Organization_Fragment)
+    | ({ __typename: 'Repository' } & ExtendedFollowable_Repository_Fragment)
+  >
+}
+
+export type GetSimpleFollowSuggestionQueryVariables = {}
+
+export type GetSimpleFollowSuggestionQuery = { __typename: 'Query' } & {
+  followSuggestion?: Maybe<
+    | ({ __typename: 'Organization' } & SimpleFollowable_Organization_Fragment)
+    | ({ __typename: 'Repository' } & SimpleFollowable_Repository_Fragment)
   >
 }
 
@@ -412,6 +472,43 @@ export const FeedEntry = gql`
   ${VoteButtons}
   ${RepoInfo}
 `
+export const ExtendedFollowable = gql`
+  fragment ExtendedFollowable on Followable {
+    ... on Organization {
+      avatarUrl
+      name
+      websiteUrl
+    }
+    ... on Repository {
+      name
+      htmlUrl
+      contributors {
+        avatarUrl
+        name
+        ... on User {
+          htmlUrl
+          login
+        }
+        ... on Organization {
+          websiteUrl
+        }
+      }
+    }
+  }
+`
+export const SimpleFollowable = gql`
+  fragment SimpleFollowable on Followable {
+    ... on Organization {
+      avatarUrl
+      name
+      websiteUrl
+    }
+    ... on Repository {
+      name
+      htmlUrl
+    }
+  }
+`
 export const OnCommentAdded = gql`
   subscription onCommentAdded($repoFullName: String!) {
     commentAdded(repoFullName: $repoFullName) {
@@ -490,44 +587,35 @@ export const Feed = gql`
 `
 export const GetExtendedFollowSuggestions = gql`
   query getExtendedFollowSuggestions {
-    followSuggestion {
-      ... on Organization {
-        avatarUrl
-        name
-        websiteUrl
-      }
-      ... on Repository {
-        name
-        htmlUrl
-        contributors {
-          avatarUrl
-          name
-          ... on User {
-            htmlUrl
-            login
-          }
-          ... on Organization {
-            websiteUrl
-          }
-        }
-      }
+    followSuggestions {
+      ...ExtendedFollowable
     }
   }
+  ${ExtendedFollowable}
 `
 export const GetSimpleFollowSuggestions = gql`
   query getSimpleFollowSuggestions {
-    followSuggestion {
-      ... on Organization {
-        avatarUrl
-        name
-        websiteUrl
-      }
-      ... on Repository {
-        name
-        htmlUrl
-      }
+    followSuggestions {
+      ...SimpleFollowable
     }
   }
+  ${SimpleFollowable}
+`
+export const GetExtendedFollowSuggestion = gql`
+  query getExtendedFollowSuggestion {
+    followSuggestion {
+      ...ExtendedFollowable
+    }
+  }
+  ${ExtendedFollowable}
+`
+export const GetSimpleFollowSuggestion = gql`
+  query getSimpleFollowSuggestion {
+    followSuggestion {
+      ...SimpleFollowable
+    }
+  }
+  ${SimpleFollowable}
 `
 export const SubmitRepository = gql`
   mutation submitRepository($repoFullName: String!) {
