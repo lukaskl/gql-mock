@@ -101,11 +101,10 @@ const buildMockingContext = <
       })),
 
       ...ensureArray(mocks).map(x => ({
-        resolvers: (x || {}) as Exclude<typeof x, undefined>,
+        resolvers: typeof x === 'function' ? x() : x,
         preservePrevious: false,
       })),
-      // TODO: fix typing - resolve passed broad type mocks
-    ] as any,
+    ],
   }
 
   const mockingContext: MagicContext = {

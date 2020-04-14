@@ -23,8 +23,3 @@ export type Resolvable<
   T extends PossibleResolvedValued = PossibleResolvedValued,
   Context extends {} = { [key in any]: unknown }
 > = T | ResolveFn<T, Context>
-
-// TODO: remove this type
-export type ResolvableValue<Context, T> =
-  | ((root: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => T)
-  | T

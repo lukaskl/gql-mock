@@ -1,7 +1,7 @@
 import { DocumentNode, GraphQLResolveInfo } from 'graphql'
 import { DeepPartial, OptionalArray, PickIfExists, RequireIfNotEmpty } from '~/utils'
 
-import { OperationKind, PossibleResolvedValued, ResolvableValue } from './graphql.types'
+import { OperationKind, PossibleResolvedValued, Resolvable } from './graphql.types'
 
 export type AnyOperationMap = {
   operationType: {}
@@ -67,9 +67,9 @@ export type ScopedMockResolvers<
   Operation extends OperationKeys<TypesMap>,
   Context = {}
 > = {
-  [Type in keyof UsageTypes<TypesMap, Operation>]?: ResolvableValue<
-    Context,
-    MockFields<UsageType<TypesMap, Operation, Type>, TypeArgsMap<TypesMap, Type>, Context>
+  [Type in keyof UsageTypes<TypesMap, Operation>]?: Resolvable<
+    MockFields<UsageType<TypesMap, Operation, Type>, TypeArgsMap<TypesMap, Type>, Context>,
+    Context
   >
 }
 
@@ -81,9 +81,9 @@ export type AllTypesMocks<
   },
   Context = {}
 > = {
-  [Type in keyof TypesMap['allOutputTypes']]?: ResolvableValue<
-    Context,
-    MockFields<TypesMap['allOutputTypes'][Type], PickIfExists<TypesMap['fieldArgsUsages'], Type>, Context>
+  [Type in keyof TypesMap['allOutputTypes']]?: Resolvable<
+    MockFields<TypesMap['allOutputTypes'][Type], PickIfExists<TypesMap['fieldArgsUsages'], Type>, Context>,
+    Context
   >
 } &
   {

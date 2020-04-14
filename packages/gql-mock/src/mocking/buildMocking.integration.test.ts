@@ -9,10 +9,10 @@ const emptyArray = (length: number) => Array.from(Array(length)).map(() => ({}))
 
 /**
  * TODOs:
- *  - [ ] support passing array of mocks
+ *  - [x] support passing array of mocks
  *  - [ ] support enums
  *  - [ ] support unions & interface
- *  - [ ] correctly type ./mockFields.ts & ./buildMocking
+ *  - [x] correctly type ./mockFields.ts & ./buildMocking
  *
  * non essential additions:
  *  - [ ] support resolving fragments
