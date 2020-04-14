@@ -13,7 +13,7 @@ import {
 import {
   MAGIC_CONTEXT_MOCKS,
   mockFields,
-  MockingContext,
+  MagicContext,
   FieldMockOptions,
   PossibleResolvedValued,
 } from './mockFields'
@@ -249,7 +249,7 @@ export const buildMocking = <
       ],
     }
 
-    const mockingContext: MockingContext = {
+    const mockingContext: MagicContext = {
       ...context,
       [MAGIC_CONTEXT_MOCKS]: extraContextContent,
     }

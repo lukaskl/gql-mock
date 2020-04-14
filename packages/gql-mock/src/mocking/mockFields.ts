@@ -55,22 +55,8 @@ export interface MockFieldsOptions {
   schema: GraphQLSchema
 }
 
-const ERRORS = {
-  UnexpectedType: (
-    type: GraphQLNullableType,
-    parentTypeName: string,
-    fieldName: string | number,
-    path: (string | number)[]
-  ) => {
-    throw new Error(
-      `Unexpected GraphQL type "${type?.constructor.name}" of "${parentTypeName}.${fieldName}" at ${path.join(
-        '.'
-      )}`
-    )
-  },
-}
-
-export type MockingContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: FieldMockOptions } & { [key in any]: unknown }
+export type MagicContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: FieldMockOptions } &
+  { [key in any]: unknown }
 
 /**
  * @description
@@ -99,12 +85,14 @@ export type MockingContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: FieldMockOpt
 const getCached = (
   cache: CacheMap,
   info: GraphQLResolveInfo,
+  typeName: string,
   resolve: () => undefined | PossibleResolvedValued
 ): undefined | PossibleResolvedValued => {
   const path = responsePathAsArray(info.path)
   const cacheKey = [
     info.operation.operation + info.operation.loc?.start,
     ...path.slice(0, path.length - 1),
+    typeName,
   ].join('.')
 
   if (cacheKey in cache) {
@@ -115,8 +103,6 @@ const getCached = (
   return resolved
 }
 
-type MagicContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: FieldMockOptions } & { [key in any]: unknown }
-
 const getTypeMockResolver = <T extends PossibleResolvedValued>(
   mockOptions: FieldMockOptions,
   info: GraphQLResolveInfo,
@@ -126,6 +112,137 @@ const getTypeMockResolver = <T extends PossibleResolvedValued>(
 ): Resolvable<T> => {
   const { cache } = mockOptions
   throw new Error('not implemented')
+}
+
+interface ResolveTypeParams<Context extends {} = { [key in any]: unknown }> {
+  type: GraphQLNullableType
+  existingValue: PossibleResolvedValued
+  resolvableValue: Resolvable<PossibleResolvedValued, Context>
+  resolve: <T extends PossibleResolvedValued>(resolvable: Resolvable<T, Context>) => T | undefined
+  path: (string | number)[]
+  getResolver: <T extends PossibleResolvedValued>(
+    forType: string,
+    interfaceTypes?: string[],
+    takeFirstResolverOnly?: boolean
+  ) => Resolvable<T>
+  onUnexpectedType: (type: GraphQLNullableType, path: (string | number)[]) => never
+}
+const resolveType = <Context extends {} = { [key in any]: unknown }>(
+  params: ResolveTypeParams<Context>
+): Exclude<PossibleResolvedValued, undefined> => {
+  const { type, existingValue, resolvableValue, resolve, path, getResolver, onUnexpectedType } = params
+
+  const typeName = getNamedType(type).name
+
+  if (type instanceof GraphQLScalarType) {
+    if (existingValue !== undefined) return existingValue
+    if (resolvableValue) {
+      const result = resolve(resolvableValue)
+      if (result !== undefined) return result
+    }
+
+    // TODO: indicate it is scalar
+    // by doing so we can short-circuit resolvers merging
+    // as we know that only the last one will "win"
+    const resolvableScalar = getResolver(typeName, [], true)
+
+    if (!resolvableScalar) {
+      throw new Error(`No mock provided for scalar type "${typeName}" at path: ${path.join('.')}`)
+    }
+
+    const result = resolve(resolvableScalar)
+
+    if (result === undefined) {
+      throw new Error(
+        `Mock for scalar type "${typeName}" was provided but returned undefined at path: ${path.join('.')}`
+      )
+    }
+
+    return result
+  }
+
+  if (type instanceof GraphQLEnumType) {
+    if (existingValue !== undefined) return existingValue
+    if (resolvableValue) {
+      const result = resolve(resolvableValue)
+      if (result !== undefined) return result
+    }
+
+    const resolvableEnum = getResolver(typeName, [], true)
+
+    const result = resolve(resolvableEnum)
+    if (result === undefined) {
+      if (true as any) {
+        throw new Error('not implemented - validate enum behavior')
+      }
+
+      const firstValue = type.getValues()[0]?.name
+      if (firstValue === undefined) {
+        throw new Error(`Something is wrong with the enum "${type.inspect()}", couldn't get values`)
+      }
+      return firstValue
+    }
+
+    return result
+  }
+
+  if (type instanceof GraphQLList) {
+    const itemType = getNamedType(type)
+    const fallbackItemValue = (position: number) => {
+      if (
+        itemType instanceof GraphQLUnionType ||
+        itemType instanceof GraphQLInterfaceType ||
+        itemType instanceof GraphQLObjectType
+      ) {
+        return {}
+      }
+      if (itemType instanceof GraphQLEnumType || itemType instanceof GraphQLScalarType) {
+        // TODO: recursively resolve enums and scalars
+        // throw new Error('not implemented - resolve scalars within the list')
+        return resolveType({
+          ...params,
+          type: itemType,
+          existingValue: undefined,
+          resolvableValue: undefined,
+          path: [...path, position],
+        })
+      }
+
+      return onUnexpectedType(itemType, [...path, position])
+    }
+    const fallbackValue = () => [fallbackItemValue(0), fallbackItemValue(1)]
+
+    if (resolvableValue) {
+      const result: any[] | undefined = existingValue
+        ? merge([], resolve(resolvableValue), existingValue)
+        : resolve(resolvableValue as Resolvable<any[], Context>)
+
+      return result === undefined
+        ? fallbackValue()
+        : result.map((x, i) => (x === undefined ? fallbackItemValue(i) : x))
+    }
+
+    return resolvableValue === undefined ? fallbackValue() : resolvableValue
+  }
+
+  if (type instanceof GraphQLObjectType) {
+    const fallbackValue = {}
+    if (resolvableValue) {
+      const result = existingValue
+        ? merge({}, resolve(resolvableValue), existingValue)
+        : resolve(resolvableValue)
+      return result === undefined ? fallbackValue : result
+    }
+
+    return resolvableValue === undefined ? fallbackValue : resolvableValue
+  }
+
+  if (type instanceof GraphQLUnionType || type instanceof GraphQLInterfaceType) {
+    // todo - implement this one
+    return { __typename: 'User' }
+  }
+
+  return onUnexpectedType(type, path)
 }
 
 function mockFields({ schema }: MockFieldsOptions): void {
@@ -146,7 +263,6 @@ function mockFields({ schema }: MockFieldsOptions): void {
       info
     ) => {
       const fieldType = getNullableType(field.type)
-      const fieldTypeName = getNamedType(fieldType).name
       const path = responsePathAsArray(info.path)
 
       /**
@@ -181,118 +297,29 @@ function mockFields({ schema }: MockFieldsOptions): void {
       const resolve = <T extends PossibleResolvedValued>(fnOrObj: Resolvable<T>): T | undefined =>
         typeof fnOrObj === 'function' ? fnOrObj(root, args, restContext, info) : fnOrObj
 
-      const resolvedTypeMock = resolve(resolvableValue)
+      /**
+       * We know that this must be an object, because we are in type resolver trying to resolve a field
+       * and that can happen only if the parent is an object
+       */
+      const resolvedTypeMock = resolve(resolvableValue) as { [key in any]: unknown }
+      const resolvableField = (resolvedTypeMock || {})[fieldName] as Resolvable<PossibleResolvedValued>
 
-      // TODO: type this const
-      const resolvableField = ((resolvedTypeMock as any) || {})[fieldName] as Resolvable<
-        PossibleResolvedValued
-      >
-
-      // TODO - split this whole function by type
-      if (fieldType instanceof GraphQLScalarType) {
-        if (existingValue !== undefined) return existingValue
-        if (resolvableField) {
-          const result = resolve(resolvableField)
-          if (result !== undefined) return result
-        }
-
-        // TODO: indicate it is scalar
-        // by doing so we can short-circuit resolvers merging
-        // as we know that only the last one will "win"
-        const resolvableScalar = getTypeMockResolver(augmentedMocks, info, fieldTypeName, [], true)
-
-        if (!resolvableScalar) {
-          throw new Error(`No mock provided for scalar type "${fieldTypeName}" at path: ${path.join('.')}`)
-        }
-
-        const result = resolve(resolvableScalar)
-
-        if (result === undefined) {
+      return resolveType({
+        existingValue,
+        resolve,
+        path,
+        type: fieldType,
+        resolvableValue: resolvableField,
+        getResolver: (forType, interfaces = [], takeFirstResolverOnly = false) =>
+          getTypeMockResolver(augmentedMocks, info, forType, interfaces, takeFirstResolverOnly),
+        onUnexpectedType: (type, path) => {
           throw new Error(
-            `Mock for scalar type "${fieldTypeName}" was provided but returned undefined at path: ${path.join(
-              '.'
-            )}`
+            `Unexpected GraphQL type "${
+              type?.constructor.name
+            }" of "${parentTypeName}.${fieldName}" at ${path.join('.')}`
           )
-        }
-
-        return result
-      }
-
-      if (fieldType instanceof GraphQLEnumType) {
-        if (existingValue !== undefined) return existingValue
-        if (resolvableField) {
-          const result = resolve(resolvableField)
-          if (result !== undefined) return result
-        }
-
-        const resolvableEnum = getTypeMockResolver(augmentedMocks, info, fieldTypeName, [], true)
-
-        const result = resolve(resolvableEnum)
-        if (result === undefined) {
-          if (true as any) {
-            throw new Error('not implemented - validate enum behavior')
-          }
-
-          const firstValue = fieldType.getValues()[0]?.name
-          if (firstValue === undefined) {
-            throw new Error(`Something is wrong with enum "${fieldType.inspect()}", could get values`)
-          }
-          return firstValue
-        }
-
-        return result
-      }
-
-      if (fieldType instanceof GraphQLList) {
-        const itemType = getNamedType(fieldType)
-        const fallbackItemValue = (position: number) => {
-          if (
-            itemType instanceof GraphQLUnionType ||
-            itemType instanceof GraphQLInterfaceType ||
-            itemType instanceof GraphQLObjectType
-          ) {
-            return {}
-          }
-          if (itemType instanceof GraphQLEnumType || itemType instanceof GraphQLScalarType) {
-            // TODO: recursively resolve enums and scalars
-            throw new Error('not implemented - resolve scalars within the list')
-          }
-
-          return ERRORS.UnexpectedType(itemType, parentTypeName, fieldName, [...path, position])
-        }
-        const fallbackValue = () => [fallbackItemValue(0), fallbackItemValue(1)]
-
-        if (resolvableField) {
-          const result: any[] | undefined = existingValue
-            ? merge([], resolve(resolvableField), existingValue)
-            : resolve(resolvableField as Resolvable<any[]>)
-
-          return result === undefined
-            ? fallbackValue()
-            : result.map((x, i) => (x === undefined ? fallbackItemValue(i) : x))
-        }
-
-        return resolvableField === undefined ? fallbackValue() : resolvableField
-      }
-
-      if (fieldType instanceof GraphQLObjectType) {
-        const fallbackValue = {}
-        if (resolvableField) {
-          const result = existingValue
-            ? merge({}, resolve(resolvableField), existingValue)
-            : resolve(resolvableField)
-          return result === undefined ? fallbackValue : result
-        }
-
-        return resolvableField === undefined ? fallbackValue : resolvableField
-      }
-
-      if (fieldType instanceof GraphQLUnionType || fieldType instanceof GraphQLInterfaceType) {
-        // todo - implement this one
-        return { __typename: 'User' }
-      }
-
-      return ERRORS.UnexpectedType(fieldType, parentTypeName, fieldName, path)
+        },
+      })
     }
 
     field.resolve = newResolver
