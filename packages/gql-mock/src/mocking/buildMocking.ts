@@ -10,7 +10,13 @@ import {
   buildSchema,
   GraphQLResolveInfo,
 } from 'graphql'
-import { MAGIC_CONTEXT_MOCKS, mockFields, MockingContext } from './mockFields'
+import {
+  MAGIC_CONTEXT_MOCKS,
+  mockFields,
+  MockingContext,
+  FieldMockOptions,
+  PossibleResolvedValued,
+} from './mockFields'
 
 import * as uuid from 'uuid'
 import { DeepPartial } from './types'
@@ -74,7 +80,7 @@ export type FieldMock<Root extends {}, Args extends {}, Return, Context = {}> =
   | MockResolverFn<Root, Args, Return, Context>
   | undefined
 
-export type TypeMocks = { [key: string]: FieldMock<{}, {}, unknown, {}> | undefined }
+export type TypeMocks = { [key: string]: FieldMock<{}, {}, PossibleResolvedValued, {}> | undefined }
 
 // type NormalizedMocks = IMocks
 
@@ -143,7 +149,7 @@ const defaultMocks: TypeMocks = {
   ID: () => uuid.v4(),
 }
 
-// TODO: remove this type
+// // TODO: remove this type
 export type ResolvableValue<Context, T> =
   | ((root: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => T)
   | T
@@ -233,10 +239,14 @@ export const buildMocking = <
     const optionsObj = options[0]
     const document = getDocument(operationName)
 
-    const extraContextContent = {
+    const extraContextContent: FieldMockOptions = {
       cache: {},
-      // TODO: restructure & normalize mocks by Type
-      mocks: { ...defaultMocks, ...baseMocks, ...(optionsObj?.mocks || {}) },
+      mocks: [
+        // TODO: fix type mappings between detailed types and broad ones
+        { resolvers: defaultMocks as any, preservePrevious: false },
+        { resolvers: baseMocks || {}, preservePrevious: false },
+        { resolvers: (optionsObj?.mocks as any) || {}, preservePrevious: false },
+      ],
     }
 
     const mockingContext: MockingContext = {
