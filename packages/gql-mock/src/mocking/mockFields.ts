@@ -189,10 +189,6 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
 
     const result = resolve(resolvableEnum)
     if (result === undefined) {
-      if (true as any) {
-        throw new Error('not implemented - validate enum behavior')
-      }
-
       const firstValue = type.getValues()[0]?.name
       if (firstValue === undefined) {
         throw new Error(`Something is wrong with the enum "${type.inspect()}", couldn't get values`)

@@ -10,7 +10,7 @@ const emptyArray = (length: number) => Array.from(Array(length)).map(() => ({}))
 /**
  * TODOs:
  *  - [x] support passing array of mocks
- *  - [ ] support enums
+ *  - [x] support enums
  *  - [ ] support unions & interface
  *  - [x] correctly type ./mockFields.ts & ./buildMocking
  *
@@ -99,34 +99,64 @@ describe('', () => {
     })
   })
 
-  it('null passed to array the mock resolves to null', () => {
-    const { data, errors } = mock('Feed', {
-      mocks: { Query: { feed: [null] } },
-      variables: { type: 'TOP' },
+  describe('array mocks', () => {
+    it('null passed to array the mock resolves to null', () => {
+      const { data, errors } = mock('Feed', {
+        mocks: { Query: { feed: [null] } },
+        variables: { type: 'TOP' },
+      })
+
+      expect(errors).toBeFalsy()
+      expect(data?.feed?.[0]).toBe(null)
     })
 
-    expect(errors).toBeFalsy()
-    expect(data?.feed?.[0]).toBe(null)
-  })
+    it('empty object passed to the array mock resolves to object', () => {
+      const { data, errors } = mock('Feed', {
+        mocks: { Query: { feed: [{}] } },
+        variables: { type: 'TOP' },
+      })
 
-  it('empty object passed to the array mock resolves to object', () => {
-    const { data, errors } = mock('Feed', {
-      mocks: { Query: { feed: [{}] } },
-      variables: { type: 'TOP' },
+      expect(errors).toBeFalsy()
+      expect(data?.feed?.[0]?.__typename).toBe('Entry')
     })
 
-    expect(errors).toBeFalsy()
-    expect(data?.feed?.[0]?.__typename).toBe('Entry')
-  })
+    it('undefined passed to the array mock resolves to object', () => {
+      const { data, errors } = mock('Feed', {
+        mocks: { Query: { feed: [undefined] } },
+        variables: { type: 'TOP' },
+      })
 
-  it('undefined passed to the array mock resolves to object', () => {
-    const { data, errors } = mock('Feed', {
-      mocks: { Query: { feed: [undefined] } },
-      variables: { type: 'TOP' },
+      expect(errors).toBeFalsy()
+      expect(data?.feed?.[0]?.__typename).toBe('Entry')
     })
 
-    expect(errors).toBeFalsy()
-    expect(data?.feed?.[0]?.__typename).toBe('Entry')
+    describe('basic types resolving', () => {
+      it('possible to resolve list of scalars', () => {
+        const { data, errors } = mock('getListOfScalars', {
+          mocks: { Query: { latestErrorCodes: [undefined, null, 500] } },
+        })
+
+        expect(errors).toBeFalsy()
+        expect(data?.latestErrorCodes).toHaveLength(3)
+        expect(typeof data?.latestErrorCodes?.[0]).toBe('number')
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        expect(Math.trunc(data?.latestErrorCodes?.[0]!)).toBeCloseTo(data?.latestErrorCodes?.[0]!, 4)
+        expect(data?.latestErrorCodes?.[1]).toBe(null)
+        expect(data?.latestErrorCodes?.[2]).toBe(500)
+      })
+
+      it('possible to resolve list of enums', () => {
+        const { data, errors } = mock('getListOfEnums', {
+          mocks: { Query: { possibleFeedTypes: ['NEW', undefined, null] } },
+        })
+
+        expect(errors).toBeFalsy()
+        expect(data?.possibleFeedTypes).toHaveLength(3)
+        expect(data?.possibleFeedTypes?.[0]).toBe('NEW')
+        expect(data?.possibleFeedTypes?.[1]).toBe('HOT')
+        expect(data?.possibleFeedTypes?.[2]).toBe(null)
+      })
+    })
   })
 
   it('mock Feed query', () => {
