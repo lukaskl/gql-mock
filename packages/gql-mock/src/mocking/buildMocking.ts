@@ -189,7 +189,7 @@ export const buildMocking = <
   Context = {},
   Documents extends DocumentsMap<keyof TypesMap['operations']> = DocumentsMap<keyof TypesMap['operations']>
 >(
-  schema: SchemaInput,
+  schemaInput: SchemaInput,
   documentsMap: Documents,
   config: BuildMockingConfig<
     TypesMap['allOutputTypes'],
@@ -204,28 +204,54 @@ export const buildMocking = <
     Operation
   >[Type]
 
-  const { context, mocks: baseMocks } = config
-
   type Variables<Operation extends OperationKeys> = TypesMap['operations'][Operation]['variablesType']
   type OperationResult<Operation extends OperationKeys> = TypesMap['operations'][Operation]['operationType']
   type ArgsMap<Type extends PropertyKey> = PickIfExists<TypesMap['fieldArgsUsages'], Type>
 
+  type UserMockResolvers<Operation extends OperationKeys> = {
+    [Type in keyof UsageTypes<Operation>]?: ResolvableValue<
+      Context,
+      MockFields<UsageType<Operation, Type>, ArgsMap<Type>, Context>
+    >
+  }
+  type UserMocksInput<Operation extends OperationKeys> =
+    | UserMockResolvers<Operation>
+    | UserMockResolvers<Operation>[]
+    | undefined
+
   type MockOptions<Operation extends OperationKeys> = {
-    mocks?: {
-      [Type in keyof UsageTypes<Operation>]?: ResolvableValue<
-        Context,
-        MockFields<UsageType<Operation, Type>, ArgsMap<Type>, Context>
-      >
-    }
+    mocks?: UserMocksInput<Operation>
   } & RequireIfNotEmpty<'variables', Variables<Operation>>
 
-  const gqlSchema = getSchema(schema)
+  const schema = getSchema(schemaInput)
 
-  mockFields({ schema: gqlSchema })
+  mockFields({ schema })
 
   const getDocument = (operationName: OperationKeys): string => {
     // TODO: add lazy loading
     return print(addTypenames(documentsMap[operationName].document))
+  }
+
+  const buildMockingContext = <Operation extends OperationKeys>(
+    mocks: UserMocksInput<Operation> = {}
+  ): MagicContext => {
+    mocks = Array.isArray(mocks) ? mocks : [mocks]
+    const extraContextContent: FieldMockOptions = {
+      cache: {},
+      mocks: [
+        // TODO: fix type mappings between detailed types and broad ones
+        { resolvers: defaultMocks as any, preservePrevious: false },
+        { resolvers: config.mocks || {}, preservePrevious: false },
+        // TODO: fix typing
+        ...mocks.map(x => ({ resolvers: (x as any) || {}, preservePrevious: false })),
+      ],
+    }
+
+    const mockingContext: MagicContext = {
+      ...config.context,
+      [MAGIC_CONTEXT_MOCKS]: extraContextContent,
+    }
+    return mockingContext
   }
 
   const mock = <Operation extends OperationKeys>(
@@ -237,29 +263,11 @@ export const buildMocking = <
     // don't pass second argument if it isn't necessary
     // see https://github.com/microsoft/TypeScript/issues/12400#issuecomment-428599865
     const optionsObj = options[0]
-    const document = getDocument(operationName)
+    const source = getDocument(operationName)
 
-    const extraContextContent: FieldMockOptions = {
-      cache: {},
-      mocks: [
-        // TODO: fix type mappings between detailed types and broad ones
-        { resolvers: defaultMocks as any, preservePrevious: false },
-        { resolvers: baseMocks || {}, preservePrevious: false },
-        { resolvers: (optionsObj?.mocks as any) || {}, preservePrevious: false },
-      ],
-    }
-
-    const mockingContext: MagicContext = {
-      ...context,
-      [MAGIC_CONTEXT_MOCKS]: extraContextContent,
-    }
-
-    const result = graphqlSync({
-      schema: gqlSchema,
-      source: document,
-      variableValues: optionsObj?.variables,
-      contextValue: mockingContext,
-    })
+    const contextValue = buildMockingContext(optionsObj?.mocks)
+    const variableValues = optionsObj?.variables
+    const result = graphqlSync({ schema, source, variableValues, contextValue })
     return result
   }
 
