@@ -1,28 +1,30 @@
 import {
-  GraphQLSchema,
   buildClientSchema,
+  buildSchema,
+  DocumentNode,
+  ExecutionResult,
+  GraphQLSchema,
   graphqlSync,
   print,
-  visit,
-  DocumentNode,
   SelectionSetNode,
-  ExecutionResult,
-  buildSchema,
-  GraphQLResolveInfo,
+  visit,
 } from 'graphql'
-import {
-  MAGIC_CONTEXT_MOCKS,
-  mockFields,
-  MagicContext,
-  FieldMockOptions,
-  PossibleResolvedValued,
-} from './mockFields'
-
 import * as uuid from 'uuid'
-import { DeepPartial } from './types'
 
-export type NaiveIntrospectionResult = { __schema: any }
-export type SchemaInput = NaiveIntrospectionResult | string | GraphQLSchema
+import { FieldMockOptions, MAGIC_CONTEXT_MOCKS, MagicContext, mockFields } from './mockFields'
+import {
+  AnyOperationMap,
+  BuildMockingConfig,
+  DocumentsMap,
+  NaiveIntrospectionResult,
+  OperationKeys,
+  OperationMockOptions,
+  OperationResult,
+  OptionalSpread,
+  SchemaInput,
+  TypeMocks,
+  UserMocksInput,
+} from './types'
 
 const isIntrospectionQuery = (input: SchemaInput): input is NaiveIntrospectionResult =>
   !!(input as { __schema: any }).__schema
@@ -68,20 +70,6 @@ function addTypenames(document: DocumentNode): DocumentNode {
   })
 }
 
-export type MockResolverFn<Root extends {}, Args extends {}, Return, Context = {}> = (
-  root: Root,
-  args: Args,
-  context: Context,
-  info: GraphQLResolveInfo
-) => Return
-
-export type FieldMock<Root extends {}, Args extends {}, Return, Context = {}> =
-  | Return
-  | MockResolverFn<Root, Args, Return, Context>
-  | undefined
-
-export type TypeMocks = { [key: string]: FieldMock<{}, {}, PossibleResolvedValued, {}> | undefined }
-
 // type NormalizedMocks = IMocks
 
 // const mergeMocks = (mocks: TypeMocks[]): NormalizedMocks => {
@@ -110,37 +98,6 @@ export type TypeMocks = { [key: string]: FieldMock<{}, {}, PossibleResolvedValue
 //   return mergedMocks.reduce((l, r) => ({ ...l, ...r }), {})
 // }
 
-type PickIfExists<
-  Type extends {},
-  Key extends string | number | symbol,
-  Default = {}
-> = Key extends keyof Type ? Type[Key] : Default
-
-type MockFields<Type extends {}, ArgsMap extends {}, Context = {}> = {
-  [Field in keyof Type]?: FieldMock<
-    DeepPartial<Type>,
-    PickIfExists<ArgsMap, Field>,
-    DeepPartial<Type[Field]>,
-    Context
-  >
-}
-
-type OperationKind = 'mutation' | 'query' | 'subscription' | 'fragment'
-type DocumentsMap<T extends PropertyKey> = { [name in T]: { document: DocumentNode; kind: OperationKind } }
-
-type RequireIfNotEmpty<PropName extends PropertyKey, T> = {} extends T
-  ? { [key in PropName]?: T }
-  : { [key in PropName]: T }
-
-type AnyOperationMap = {
-  operationType: {}
-  variablesType: {}
-  typeUsages: any
-  kind: OperationKind
-}
-
-type OptionalSpread<T> = {} extends T ? [] | [T] : [T]
-
 const defaultMocks: TypeMocks = {
   Int: () => Math.round(Math.random() * 200) - 100,
   Float: () => Math.random() * 200 - 100,
@@ -149,39 +106,7 @@ const defaultMocks: TypeMocks = {
   ID: () => uuid.v4(),
 }
 
-// // TODO: remove this type
-export type ResolvableValue<Context, T> =
-  | ((root: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => T)
-  | T
-
-export type OptionalArray<T> = T | T[]
-
-export type AllTypesMocks<
-  AllTypes extends {},
-  AllScalars extends {},
-  ArgsMap extends {},
-  Context extends {}
-> = {
-  [Type in keyof AllTypes]?: ResolvableValue<
-    Context,
-    MockFields<AllTypes[Type], PickIfExists<ArgsMap, Type>, Context>
-  >
-} &
-  {
-    [Type in keyof AllScalars]?: FieldMock<{}, {}, AllScalars[Type], Context>
-  }
-
 const ensureArray = <T>(item: T | T[]): T[] => (Array.isArray(item) ? item : [item])
-
-export interface BuildMockingConfig<
-  AllTypes extends {},
-  AllScalars extends {},
-  ArgsMap extends {},
-  Context extends {}
-> {
-  mocks?: OptionalArray<AllTypesMocks<AllTypes, AllScalars, ArgsMap, Context>>
-  context?: Context
-}
 
 export const buildMocking = <
   TypesMap extends {
@@ -195,56 +120,19 @@ export const buildMocking = <
 >(
   schemaInput: SchemaInput,
   documentsMap: Documents,
-  config: BuildMockingConfig<
-    TypesMap['allOutputTypes'],
-    TypesMap['allScalarTypes'],
-    TypesMap['fieldArgsUsages'],
-    Context
-  > = {}
+  config: BuildMockingConfig<TypesMap, Context> = {}
 ) => {
-  type OperationKeys = keyof TypesMap['operations']
-  type UsageTypes<Operation extends OperationKeys> = TypesMap['operations'][Operation]['typeUsages']
-  type UsageType<Operation extends OperationKeys, Type extends keyof UsageTypes<Operation>> = UsageTypes<
-    Operation
-  >[Type]
-
-  type Variables<Operation extends OperationKeys> = TypesMap['operations'][Operation]['variablesType']
-  type OperationResult<Operation extends OperationKeys> = TypesMap['operations'][Operation]['operationType']
-  type ArgsMap<Type extends PropertyKey> = PickIfExists<TypesMap['fieldArgsUsages'], Type>
-
-  type UserMockResolvers<Operation extends OperationKeys> = {
-    [Type in keyof UsageTypes<Operation>]?: ResolvableValue<
-      Context,
-      MockFields<UsageType<Operation, Type>, ArgsMap<Type>, Context>
-    >
-  }
-
-  type AllTypesMockResolvers = AllTypesMocks<
-    TypesMap['allOutputTypes'],
-    TypesMap['allScalarTypes'],
-    TypesMap['fieldArgsUsages'],
-    Context
-  >
-
-  type UserMocksInput<Operation extends OperationKeys> = OptionalArray<
-    UserMockResolvers<Operation> | (() => AllTypesMockResolvers)
-  >
-
-  type MockOptions<Operation extends OperationKeys> = {
-    mocks?: UserMocksInput<Operation>
-  } & RequireIfNotEmpty<'variables', Variables<Operation>>
-
   const schema = getSchema(schemaInput)
 
   mockFields({ schema })
 
-  const getDocument = (operationName: OperationKeys): string => {
+  const getDocument = (operationName: OperationKeys<TypesMap>): string => {
     // TODO: add lazy loading
     return print(addTypenames(documentsMap[operationName].document))
   }
 
-  const buildMockingContext = <Operation extends OperationKeys>(
-    mocks: UserMocksInput<Operation> = {}
+  const buildMockingContext = <Operation extends OperationKeys<TypesMap>>(
+    mocks: UserMocksInput<TypesMap, Operation> = {}
   ): MagicContext => {
     const extraContextContent: FieldMockOptions = {
       cache: {},
@@ -270,10 +158,10 @@ export const buildMocking = <
     return mockingContext
   }
 
-  const mock = <Operation extends OperationKeys>(
+  const mock = <Operation extends OperationKeys<TypesMap>>(
     operationName: Operation,
-    ...options: OptionalSpread<MockOptions<Operation>>
-  ): ExecutionResult<OperationResult<Operation>> => {
+    ...options: OptionalSpread<OperationMockOptions<TypesMap, Operation>>
+  ): ExecutionResult<OperationResult<TypesMap, Operation>> => {
     // We are spreading options and then taking the first one
     // because we want to allow users of this API
     // don't pass second argument if it isn't necessary

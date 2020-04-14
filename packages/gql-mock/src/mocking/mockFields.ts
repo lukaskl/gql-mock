@@ -15,17 +15,9 @@ import {
 } from 'graphql'
 import { forEachField } from 'graphql-tools'
 import merge from 'lodash.merge'
+import { PossibleResolvedValued } from './types'
 
 export const MAGIC_CONTEXT_MOCKS = '__MOCKS-2ba176b7-1636-4cc8-a9cd-f0dcf9c09761'
-
-export type PossibleResolvedValued =
-  | undefined
-  | null
-  | boolean // Type can be a scalar
-  | number // Type can be a scalar
-  | string // Type can be a scalar or an enum
-  | { [key in any]: unknown }
-  | any[]
 
 export interface CacheMap {
   [key: string]: PossibleResolvedValued
