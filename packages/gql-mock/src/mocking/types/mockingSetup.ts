@@ -1,7 +1,7 @@
 import { DocumentNode, GraphQLResolveInfo } from 'graphql'
+import { DeepPartial, OptionalArray, PickIfExists, RequireIfNotEmpty } from '~/utils'
 
-import { DeepPartial, OptionalArray, PickIfExists, RequireIfNotEmpty } from './generic.types'
-import { OperationKind, ResolvableValue, PossibleResolvedValued } from './graphql.types'
+import { OperationKind, PossibleResolvedValued, ResolvableValue } from './graphql.types'
 
 export type AnyOperationMap = {
   operationType: {}

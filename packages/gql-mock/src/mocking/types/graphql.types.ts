@@ -11,10 +11,20 @@ export type PossibleResolvedValued =
   | { [key in any]: unknown }
   | any[]
 
-// // TODO: remove this type
+export type NaiveIntrospectionResult = { __schema: any }
+export type SchemaInput = NaiveIntrospectionResult | string | GraphQLSchema
+
+export type ResolveFn<
+  T extends PossibleResolvedValued = PossibleResolvedValued,
+  Context extends {} = { [key in any]: unknown }
+> = (source: unknown, args: { [argName: string]: unknown }, context: Context, info: GraphQLResolveInfo) => T
+
+export type Resolvable<
+  T extends PossibleResolvedValued = PossibleResolvedValued,
+  Context extends {} = { [key in any]: unknown }
+> = T | ResolveFn<T, Context>
+
+// TODO: remove this type
 export type ResolvableValue<Context, T> =
   | ((root: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => T)
   | T
-
-export type NaiveIntrospectionResult = { __schema: any }
-export type SchemaInput = NaiveIntrospectionResult | string | GraphQLSchema

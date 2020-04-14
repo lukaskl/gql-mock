@@ -15,23 +15,13 @@ import {
 } from 'graphql'
 import { forEachField } from 'graphql-tools'
 import merge from 'lodash.merge'
-import { PossibleResolvedValued } from './types'
+import { PossibleResolvedValued, ResolveFn, Resolvable } from './types'
 
 export const MAGIC_CONTEXT_MOCKS = '__MOCKS-2ba176b7-1636-4cc8-a9cd-f0dcf9c09761'
 
 export interface CacheMap {
   [key: string]: PossibleResolvedValued
 }
-
-type ResolveFn<
-  T extends PossibleResolvedValued = PossibleResolvedValued,
-  Context extends {} = { [key in any]: unknown }
-> = (source: unknown, args: { [argName: string]: unknown }, context: Context, info: GraphQLResolveInfo) => T
-
-type Resolvable<
-  T extends PossibleResolvedValued = PossibleResolvedValued,
-  Context extends {} = { [key in any]: unknown }
-> = T | ResolveFn<T, Context>
 
 type TypeMockResolvers = {
   [key: string]: undefined | PossibleResolvedValued | ResolveFn
@@ -104,6 +94,32 @@ const getTypeMockResolver = <T extends PossibleResolvedValued>(
 ): Resolvable<T> => {
   const { cache } = mockOptions
   throw new Error('not implemented')
+
+  // const mergeMocks = (mocks: TypeMocks[]): NormalizedMocks => {
+  //   const mocksMap: { [typeName: string]: TypeMock<{}>[] } = {}
+
+  //   for (const mock of mocks) {
+  //     for (const [typeName, typeMock] of Object.entries(mock)) {
+  //       if (!mocksMap[typeName]) {
+  //         mocksMap[typeName] = []
+  //       }
+  //       mocksMap[typeName].push(typeMock)
+  //     }
+  //   }
+
+  //   const mergedMocks = Object.keys(mocksMap).map(typeName => {
+  //     const resolver: GraphQLFieldResolver<unknown, unknown> = (source, args, context, info) => {
+  //       const typeMocks = mocksMap[typeName]
+  //       const reducedMock = typeMocks.reduce(
+  //         (l, r) => ({ ...l, ...(typeof r === 'function' ? (r as any)(source, args, context, info) : r) }),
+  //         {}
+  //       )
+  //       return reducedMock
+  //     }
+  //     return { [typeName]: resolver }
+  //   })
+  //   return mergedMocks.reduce((l, r) => ({ ...l, ...r }), {})
+  // }
 }
 
 interface ResolveTypeParams<Context extends {} = { [key in any]: unknown }> {

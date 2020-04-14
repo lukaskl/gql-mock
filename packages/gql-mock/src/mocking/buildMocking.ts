@@ -10,6 +10,7 @@ import {
   visit,
 } from 'graphql'
 import * as uuid from 'uuid'
+import { ensureArray, OptionalSpread } from '~/utils'
 
 import { FieldMockOptions, MAGIC_CONTEXT_MOCKS, MagicContext, mockFields } from './mockFields'
 import {
@@ -20,16 +21,15 @@ import {
   OperationKeys,
   OperationMockOptions,
   OperationResult,
-  OptionalSpread,
   SchemaInput,
   TypeMocks,
   UserMocksInput,
 } from './types'
 
-const isIntrospectionQuery = (input: SchemaInput): input is NaiveIntrospectionResult =>
+export const isIntrospectionQuery = (input: SchemaInput): input is NaiveIntrospectionResult =>
   !!(input as { __schema: any }).__schema
 
-const getSchema = (input: SchemaInput): GraphQLSchema => {
+export const getSchema = (input: SchemaInput): GraphQLSchema => {
   // TODO: extend the schema adding arbitrary
   // node (generated on runtime)
   // which will be used to resolve Fragments
@@ -51,7 +51,7 @@ const getSchema = (input: SchemaInput): GraphQLSchema => {
   )
 }
 
-function addTypenames(document: DocumentNode): DocumentNode {
+export function addTypenames(document: DocumentNode): DocumentNode {
   return visit(document, {
     SelectionSet: {
       leave: node => {
@@ -70,35 +70,7 @@ function addTypenames(document: DocumentNode): DocumentNode {
   })
 }
 
-// type NormalizedMocks = IMocks
-
-// const mergeMocks = (mocks: TypeMocks[]): NormalizedMocks => {
-//   const mocksMap: { [typeName: string]: TypeMock<{}>[] } = {}
-
-//   for (const mock of mocks) {
-//     for (const [typeName, typeMock] of Object.entries(mock)) {
-//       if (!mocksMap[typeName]) {
-//         mocksMap[typeName] = []
-//       }
-//       mocksMap[typeName].push(typeMock)
-//     }
-//   }
-
-//   const mergedMocks = Object.keys(mocksMap).map(typeName => {
-//     const resolver: GraphQLFieldResolver<unknown, unknown> = (source, args, context, info) => {
-//       const typeMocks = mocksMap[typeName]
-//       const reducedMock = typeMocks.reduce(
-//         (l, r) => ({ ...l, ...(typeof r === 'function' ? (r as any)(source, args, context, info) : r) }),
-//         {}
-//       )
-//       return reducedMock
-//     }
-//     return { [typeName]: resolver }
-//   })
-//   return mergedMocks.reduce((l, r) => ({ ...l, ...r }), {})
-// }
-
-const defaultMocks: TypeMocks = {
+export const defaultMocks: TypeMocks = {
   Int: () => Math.round(Math.random() * 200) - 100,
   Float: () => Math.random() * 200 - 100,
   String: 'Hello World',
@@ -106,7 +78,57 @@ const defaultMocks: TypeMocks = {
   ID: () => uuid.v4(),
 }
 
-const ensureArray = <T>(item: T | T[]): T[] => (Array.isArray(item) ? item : [item])
+const buildMockingContext = <
+  TypesMap extends {
+    operations: { [key in keyof TypesMap['operations']]: AnyOperationMap }
+    fieldArgsUsages: {}
+    allOutputTypes: {}
+    allScalarTypes: {}
+  },
+  Operation extends OperationKeys<TypesMap>,
+  Context = {}
+>(
+  mocks: UserMocksInput<TypesMap, Operation>,
+  config: BuildMockingConfig<TypesMap, Context>
+): MagicContext => {
+  const extraContextContent: FieldMockOptions = {
+    cache: {},
+    mocks: [
+      { resolvers: defaultMocks as any, preservePrevious: false },
+      ...ensureArray(config.mocks).map(x => ({
+        resolvers: (x || {}) as Exclude<typeof x, undefined>,
+        preservePrevious: false,
+      })),
+
+      ...ensureArray(mocks).map(x => ({
+        resolvers: (x || {}) as Exclude<typeof x, undefined>,
+        preservePrevious: false,
+      })),
+      // TODO: fix typing - resolve passed broad type mocks
+    ] as any,
+  }
+
+  const mockingContext: MagicContext = {
+    ...config.context,
+    [MAGIC_CONTEXT_MOCKS]: extraContextContent,
+  }
+  return mockingContext
+}
+
+const getDocument = <
+  TypesMap extends {
+    operations: { [key in keyof TypesMap['operations']]: AnyOperationMap }
+  },
+  Operation extends OperationKeys<TypesMap>,
+  Documents extends DocumentsMap<keyof TypesMap['operations']>
+>(
+  operationName: Operation,
+  documentsMap: Documents
+): string => {
+  // TODO: add lazy loading
+  // TODO: add config whether add typenames or not, defaulting to add
+  return print(addTypenames(documentsMap[operationName].document))
+}
 
 export const buildMocking = <
   TypesMap extends {
@@ -126,51 +148,15 @@ export const buildMocking = <
 
   mockFields({ schema })
 
-  const getDocument = (operationName: OperationKeys<TypesMap>): string => {
-    // TODO: add lazy loading
-    return print(addTypenames(documentsMap[operationName].document))
-  }
-
-  const buildMockingContext = <Operation extends OperationKeys<TypesMap>>(
-    mocks: UserMocksInput<TypesMap, Operation> = {}
-  ): MagicContext => {
-    const extraContextContent: FieldMockOptions = {
-      cache: {},
-      mocks: [
-        { resolvers: defaultMocks as any, preservePrevious: false },
-        ...ensureArray(config.mocks).map(x => ({
-          resolvers: (x || {}) as Exclude<typeof x, undefined>,
-          preservePrevious: false,
-        })),
-
-        ...ensureArray(mocks).map(x => ({
-          resolvers: (x || {}) as Exclude<typeof x, undefined>,
-          preservePrevious: false,
-        })),
-        // TODO: fix typing - resolve passed broad type mocks
-      ] as any,
-    }
-
-    const mockingContext: MagicContext = {
-      ...config.context,
-      [MAGIC_CONTEXT_MOCKS]: extraContextContent,
-    }
-    return mockingContext
-  }
-
   const mock = <Operation extends OperationKeys<TypesMap>>(
     operationName: Operation,
     ...options: OptionalSpread<OperationMockOptions<TypesMap, Operation>>
   ): ExecutionResult<OperationResult<TypesMap, Operation>> => {
-    // We are spreading options and then taking the first one
-    // because we want to allow users of this API
-    // don't pass second argument if it isn't necessary
-    // see https://github.com/microsoft/TypeScript/issues/12400#issuecomment-428599865
-    const optionsObj = options[0]
-    const source = getDocument(operationName)
+    const { mocks, variables } = options[0] || {}
+    const source = getDocument<TypesMap, Operation, Documents>(operationName, documentsMap)
 
-    const contextValue = buildMockingContext(optionsObj?.mocks)
-    const variableValues = optionsObj?.variables
+    const contextValue = buildMockingContext(mocks || {}, config)
+    const variableValues = variables
     const result = graphqlSync({ schema, source, variableValues, contextValue })
     return result
   }
