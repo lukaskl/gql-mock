@@ -154,6 +154,8 @@ export type ResolvableValue<Context, T> =
   | ((root: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => T)
   | T
 
+export type OptionalArray<T> = T | T[]
+
 export type AllTypesMocks<
   AllTypes extends {},
   AllScalars extends {},
@@ -169,13 +171,15 @@ export type AllTypesMocks<
     [Type in keyof AllScalars]?: FieldMock<{}, {}, AllScalars[Type], Context>
   }
 
+const ensureArray = <T>(item: T | T[]): T[] => (Array.isArray(item) ? item : [item])
+
 export interface BuildMockingConfig<
   AllTypes extends {},
   AllScalars extends {},
   ArgsMap extends {},
   Context extends {}
 > {
-  mocks?: AllTypesMocks<AllTypes, AllScalars, ArgsMap, Context>
+  mocks?: OptionalArray<AllTypesMocks<AllTypes, AllScalars, ArgsMap, Context>>
   context?: Context
 }
 
@@ -214,10 +218,17 @@ export const buildMocking = <
       MockFields<UsageType<Operation, Type>, ArgsMap<Type>, Context>
     >
   }
-  type UserMocksInput<Operation extends OperationKeys> =
-    | UserMockResolvers<Operation>
-    | UserMockResolvers<Operation>[]
-    | undefined
+
+  type AllTypesMockResolvers = AllTypesMocks<
+    TypesMap['allOutputTypes'],
+    TypesMap['allScalarTypes'],
+    TypesMap['fieldArgsUsages'],
+    Context
+  >
+
+  type UserMocksInput<Operation extends OperationKeys> = OptionalArray<
+    UserMockResolvers<Operation> | (() => AllTypesMockResolvers)
+  >
 
   type MockOptions<Operation extends OperationKeys> = {
     mocks?: UserMocksInput<Operation>
@@ -235,16 +246,21 @@ export const buildMocking = <
   const buildMockingContext = <Operation extends OperationKeys>(
     mocks: UserMocksInput<Operation> = {}
   ): MagicContext => {
-    mocks = Array.isArray(mocks) ? mocks : [mocks]
     const extraContextContent: FieldMockOptions = {
       cache: {},
       mocks: [
-        // TODO: fix type mappings between detailed types and broad ones
         { resolvers: defaultMocks as any, preservePrevious: false },
-        { resolvers: config.mocks || {}, preservePrevious: false },
-        // TODO: fix typing
-        ...mocks.map(x => ({ resolvers: (x as any) || {}, preservePrevious: false })),
-      ],
+        ...ensureArray(config.mocks).map(x => ({
+          resolvers: (x || {}) as Exclude<typeof x, undefined>,
+          preservePrevious: false,
+        })),
+
+        ...ensureArray(mocks).map(x => ({
+          resolvers: (x || {}) as Exclude<typeof x, undefined>,
+          preservePrevious: false,
+        })),
+        // TODO: fix typing - resolve passed broad type mocks
+      ] as any,
     }
 
     const mockingContext: MagicContext = {
