@@ -10,12 +10,12 @@ import {
   getNullableType,
   getNamedType,
   GraphQLScalarType,
-  GraphQLResolveInfo,
   GraphQLNullableType,
 } from 'graphql'
 import { forEachField } from 'graphql-tools'
 import merge from 'lodash.merge'
 import { PossibleResolvedValued, ResolveFn, Resolvable } from './types'
+import flatMap from 'lodash.flatmap'
 
 export const MAGIC_CONTEXT_MOCKS = '__MOCKS-2ba176b7-1636-4cc8-a9cd-f0dcf9c09761'
 
@@ -66,16 +66,10 @@ export type MagicContext = { [key in typeof MAGIC_CONTEXT_MOCKS]: FieldMockOptio
  */
 const getCached = (
   cache: CacheMap,
-  info: GraphQLResolveInfo,
-  typeName: string,
-  resolve: () => undefined | PossibleResolvedValued
-): undefined | PossibleResolvedValued => {
-  const path = responsePathAsArray(info.path)
-  const cacheKey = [
-    info.operation.operation + info.operation.loc?.start,
-    ...path.slice(0, path.length - 1),
-    typeName,
-  ].join('.')
+  path: (string | number)[],
+  resolve: () => PossibleResolvedValued
+): PossibleResolvedValued => {
+  const cacheKey = path.join('.')
 
   if (cacheKey in cache) {
     return cache[cacheKey]
@@ -85,41 +79,55 @@ const getCached = (
   return resolved
 }
 
-const getTypeMockResolver = <T extends PossibleResolvedValued>(
+const getTypeMockResolver = (
   mockOptions: FieldMockOptions,
-  info: GraphQLResolveInfo,
+  cacheKey: (string | number)[],
   forType: string,
   interfaceTypes: string[] = [],
-  takeFirstResolverOnly = false
-): Resolvable<T> => {
-  const { cache } = mockOptions
-  throw new Error('not implemented')
+  takeFirstResolvedOnly = false
+): ResolveFn => {
+  const { cache, mocks } = mockOptions
 
-  // const mergeMocks = (mocks: TypeMocks[]): NormalizedMocks => {
-  //   const mocksMap: { [typeName: string]: TypeMock<{}>[] } = {}
+  const matchingTypes = [forType, ...interfaceTypes]
+  // collect all mocks which applies to this
+  const matchingTypeMocks = flatMap(mocks, mock => {
+    const mockKeys = Object.keys(mock.resolvers).filter(type => matchingTypes.includes(type)) as string[]
 
-  //   for (const mock of mocks) {
-  //     for (const [typeName, typeMock] of Object.entries(mock)) {
-  //       if (!mocksMap[typeName]) {
-  //         mocksMap[typeName] = []
-  //       }
-  //       mocksMap[typeName].push(typeMock)
-  //     }
-  //   }
+    const { preservePrevious } = mock
+    return mockKeys.map(type => ({ type, resolver: mock.resolvers[type], preservePrevious }))
+  }).reverse()
 
-  //   const mergedMocks = Object.keys(mocksMap).map(typeName => {
-  //     const resolver: GraphQLFieldResolver<unknown, unknown> = (source, args, context, info) => {
-  //       const typeMocks = mocksMap[typeName]
-  //       const reducedMock = typeMocks.reduce(
-  //         (l, r) => ({ ...l, ...(typeof r === 'function' ? (r as any)(source, args, context, info) : r) }),
-  //         {}
-  //       )
-  //       return reducedMock
-  //     }
-  //     return { [typeName]: resolver }
-  //   })
-  //   return mergedMocks.reduce((l, r) => ({ ...l, ...r }), {})
-  // }
+  const normalizedResolver: ResolveFn = (...args) => {
+    const resolve = <T extends PossibleResolvedValued>(fnOrObj: Resolvable<T>) =>
+      typeof fnOrObj === 'function' ? fnOrObj(...args) : fnOrObj
+
+    let returnValue: PossibleResolvedValued = undefined
+
+    for (const mock of matchingTypeMocks) {
+      const value = resolve(mock.resolver)
+      if (value === undefined) {
+        continue
+      }
+      if (returnValue === undefined) {
+        returnValue = value
+        continue
+      }
+      if (takeFirstResolvedOnly) {
+        break
+      }
+      if (mock.preservePrevious === false && !interfaceTypes.includes(mock.type)) {
+        break
+      }
+      returnValue = merge({ temp: undefined }, { temp: value }, { temp: returnValue }).temp
+    }
+
+    return returnValue
+  }
+
+  const cachedResolver: ResolveFn<PossibleResolvedValued> = (...args) =>
+    getCached(cache, cacheKey, () => normalizedResolver(...args))
+
+  return cachedResolver
 }
 
 interface ResolveTypeParams<Context extends {} = { [key in any]: unknown }> {
@@ -128,11 +136,12 @@ interface ResolveTypeParams<Context extends {} = { [key in any]: unknown }> {
   resolvableValue: Resolvable<PossibleResolvedValued, Context>
   resolve: <T extends PossibleResolvedValued>(resolvable: Resolvable<T, Context>) => T | undefined
   path: (string | number)[]
-  getResolver: <T extends PossibleResolvedValued>(
+  getResolver: (
     forType: string,
+    cacheKey: (string | number)[],
     interfaceTypes?: string[],
-    takeFirstResolverOnly?: boolean
-  ) => Resolvable<T>
+    takeFirstResolvedOnly?: boolean
+  ) => ResolveFn<PossibleResolvedValued>
   onUnexpectedType: (type: GraphQLNullableType, path: (string | number)[]) => never
 }
 const resolveType = <Context extends {} = { [key in any]: unknown }>(
@@ -152,7 +161,7 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
     // TODO: indicate it is scalar
     // by doing so we can short-circuit resolvers merging
     // as we know that only the last one will "win"
-    const resolvableScalar = getResolver(typeName, [], true)
+    const resolvableScalar = getResolver(typeName, path, [], true)
 
     if (!resolvableScalar) {
       throw new Error(`No mock provided for scalar type "${typeName}" at path: ${path.join('.')}`)
@@ -176,7 +185,7 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
       if (result !== undefined) return result
     }
 
-    const resolvableEnum = getResolver(typeName, [], true)
+    const resolvableEnum = getResolver(typeName, path, [], true)
 
     const result = resolve(resolvableEnum)
     if (result === undefined) {
@@ -292,24 +301,30 @@ function mockFields({ schema }: MockFieldsOptions): void {
 
       const augmentedMocks: FieldMockOptions = {
         ...options,
-        mocks: [{ preservePrevious: false, resolvers: { [parentTypeName]: oldResolver } }, ...options.mocks],
+        mocks: [{ resolvers: { [parentTypeName]: oldResolver }, preservePrevious: false }, ...options.mocks],
       }
-
-      const resolvableValue = getTypeMockResolver(
-        augmentedMocks,
-        info,
-        parentTypeName,
-        fieldType instanceof GraphQLObjectType ? fieldType.getInterfaces().map(x => x.name) : []
-      )
 
       const resolve = <T extends PossibleResolvedValued>(fnOrObj: Resolvable<T>): T | undefined =>
         typeof fnOrObj === 'function' ? fnOrObj(root, args, restContext, info) : fnOrObj
+
+      const getTypeResolver = (
+        forType: string,
+        cacheKey: (string | number)[],
+        interfaces: string[] = [],
+        takeFirstResolvedOnly = false
+      ) => getTypeMockResolver(augmentedMocks, cacheKey, forType, interfaces, takeFirstResolvedOnly)
+
+      const resolverFn = getTypeResolver(
+        parentTypeName,
+        path.slice(0, path.length - 1),
+        fieldType instanceof GraphQLObjectType ? fieldType.getInterfaces().map(x => x.name) : []
+      )
 
       /**
        * We know that this must be an object, because we are in type resolver trying to resolve a field
        * and that can happen only if the parent is an object
        */
-      const resolvedTypeMock = resolve(resolvableValue) as { [key in any]: unknown }
+      const resolvedTypeMock = resolve(resolverFn) as { [key in any]: unknown }
       const resolvableField = (resolvedTypeMock || {})[fieldName] as Resolvable<PossibleResolvedValued>
 
       return resolveType({
@@ -318,8 +333,7 @@ function mockFields({ schema }: MockFieldsOptions): void {
         path,
         type: fieldType,
         resolvableValue: resolvableField,
-        getResolver: (forType, interfaces = [], takeFirstResolverOnly = false) =>
-          getTypeMockResolver(augmentedMocks, info, forType, interfaces, takeFirstResolverOnly),
+        getResolver: getTypeResolver,
         onUnexpectedType: (type, path) => {
           throw new Error(
             `Unexpected GraphQL type "${
