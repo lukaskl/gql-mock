@@ -152,6 +152,14 @@ export type TypeUsagesForGetRepositoryContributorsQuery = {
   >
 } & { Query: Types.GetRepositoryContributorsQuery }
 
+export type TypeUsagesForGetListOfScalarsQuery = {
+  Query: Types.GetListOfScalarsQuery
+}
+
+export type TypeUsagesForGetListOfEnumsQuery = {
+  Query: Types.GetListOfEnumsQuery
+}
+
 export type TypeUsagesForSubmitCommentMutation = {
   Comment: Types.SubmitCommentMutation['submitComment']
 } & {
@@ -237,6 +245,18 @@ export interface OperationsMap {
     typeUsages: TypeUsagesForGetRepositoryContributorsQuery
     kind: 'query'
   }
+  getListOfScalars: {
+    operationType: Types.GetListOfScalarsQuery
+    variablesType: Types.GetListOfScalarsQueryVariables
+    typeUsages: TypeUsagesForGetListOfScalarsQuery
+    kind: 'query'
+  }
+  getListOfEnums: {
+    operationType: Types.GetListOfEnumsQuery
+    variablesType: Types.GetListOfEnumsQueryVariables
+    typeUsages: TypeUsagesForGetListOfEnumsQuery
+    kind: 'query'
+  }
   submitComment: {
     operationType: Types.SubmitCommentMutation
     variablesType: Types.SubmitCommentMutationVariables
@@ -292,6 +312,11 @@ export const documentsMap = {
     document: Types.GetRepositoryContributors,
     kind: 'query' as const,
   },
+  getListOfScalars: {
+    document: Types.GetListOfScalars,
+    kind: 'query' as const,
+  },
+  getListOfEnums: { document: Types.GetListOfEnums, kind: 'query' as const },
   submitComment: { document: Types.SubmitComment, kind: 'mutation' as const },
   vote: { document: Types.Vote, kind: 'mutation' as const },
 }

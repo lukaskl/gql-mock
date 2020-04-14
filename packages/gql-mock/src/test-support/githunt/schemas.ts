@@ -98,6 +98,9 @@ export const typeDefs = /* GraphQL */ `
   type Query {
     followSuggestion: Followable
 
+    latestErrorCodes: [Int]
+    possibleFeedTypes: [FeedType]
+
     # A feed of repository submissions
     feed(
       # The sort order for the feed

@@ -1,0 +1,7 @@
+query getListOfScalars {
+  latestErrorCodes
+}
+
+query getListOfEnums {
+  possibleFeedTypes
+}

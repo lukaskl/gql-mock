@@ -111,6 +111,8 @@ export type Organization = Actor & {
 export type Query = {
   __typename: 'Query'
   followSuggestion: Maybe<Followable>
+  latestErrorCodes: Maybe<Array<Maybe<Scalars['Int']>>>
+  possibleFeedTypes: Maybe<Array<Maybe<FeedType>>>
   /** A feed of repository submissions */
   feed: Maybe<Array<Maybe<Entry>>>
   /** A single entry */
@@ -326,6 +328,14 @@ export type GetRepositoryContributorsQuery = { __typename: 'Query' } & {
       }
   >
 }
+
+export type GetListOfScalarsQueryVariables = {}
+
+export type GetListOfScalarsQuery = { __typename: 'Query' } & Pick<Query, 'latestErrorCodes'>
+
+export type GetListOfEnumsQueryVariables = {}
+
+export type GetListOfEnumsQuery = { __typename: 'Query' } & Pick<Query, 'possibleFeedTypes'>
 
 export type SubmitCommentMutationVariables = {
   repoFullName: Scalars['String']
@@ -550,6 +560,16 @@ export const GetRepositoryContributors = gql`
         }
       }
     }
+  }
+`
+export const GetListOfScalars = gql`
+  query getListOfScalars {
+    latestErrorCodes
+  }
+`
+export const GetListOfEnums = gql`
+  query getListOfEnums {
+    possibleFeedTypes
   }
 `
 export const SubmitComment = gql`
