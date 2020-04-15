@@ -11,15 +11,21 @@ const emptyArray = (length: number) => Array.from(Array(length)).map(() => ({}))
  *  - [x] correctly type ./mockFields.ts & ./buildMocking
  *
  * non essential additions:
+ *  - [ ] support passing "preservePrevious"
+ *  - [ ] support passing "addTypenames"
+ *  - [ ] support passing raw query documents
+ *  - [ ] generate typenames for interface types
+ *  - [ ] support deeply nested arrays
  *  - [ ] support resolving fragments
  *  - [ ] support passing context
- *  - [ ] support async execution
  *  - [ ] port tests from graphql-tools
+ *  - [ ] clone GraphQLSchema (if passed) - (?) - as otherwise it gets altered
+ *  - [ ] support async execution (?)
  */
 
 describe('', () => {
   const { mock } = buildMocking<TypesMap>(schemas.typeDefs, documentsMap, {
-    mocks: { Date: () => new Date(), Actor: { __typename: 'User' } as any },
+    mocks: { Date: () => new Date(), Actor: { __typename: 'User' } },
   })
 
   describe('variations of passing the mocks', () => {
@@ -170,6 +176,23 @@ describe('', () => {
     expect(data?.currentUser?.login).toBe('fake-login')
     expect(data?.feed?.[0]?.postedBy).toBeTruthy()
     expect(data?.feed?.[0]?.commentCount).toBeTruthy()
+  })
+
+  it('mock Feed query with null scalars', () => {
+    const { data, errors } = mock('Feed', {
+      mocks: {
+        Query: { feed: [{}] },
+        Repository: {
+          openIssuesCount: null,
+          description: null,
+        },
+      },
+      variables: { type: 'HOT' },
+    })
+
+    expect(errors).toBeFalsy()
+    expect(data?.feed?.[0]?.repository.openIssuesCount).toBe(null)
+    expect(data?.feed?.[0]?.repository.description).toBe(null)
   })
 
   it('mock Comment query', () => {

@@ -156,14 +156,11 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
 
   if (type instanceof GraphQLScalarType) {
     if (existingValue !== undefined) return existingValue
-    if (resolvableValue) {
+    if (resolvableValue !== undefined) {
       const result = resolve(resolvableValue)
       if (result !== undefined) return result
     }
 
-    // TODO: indicate it is scalar
-    // by doing so we can short-circuit resolvers merging
-    // as we know that only the last one will "win"
     const resolvableScalar = getResolver(typeName, path, [], true)
 
     if (!resolvableScalar) {
@@ -183,7 +180,7 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
 
   if (type instanceof GraphQLEnumType) {
     if (existingValue !== undefined) return existingValue
-    if (resolvableValue) {
+    if (resolvableValue !== undefined) {
       const result = resolve(resolvableValue)
       if (result !== undefined) return result
     }
@@ -214,10 +211,9 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
         itemType instanceof GraphQLUnionType ||
         itemType instanceof GraphQLInterfaceType ||
         itemType instanceof GraphQLEnumType ||
-        itemType instanceof GraphQLScalarType
+        itemType instanceof GraphQLScalarType ||
+        itemType instanceof GraphQLList
       ) {
-        // TODO: recursively resolve enums and scalars
-        // throw new Error('not implemented - resolve scalars within the list')
         return resolveType({
           ...params,
           type: itemType,
@@ -242,14 +238,15 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
       }
       return false
     }
-    if (resolvableValue) {
+    if (resolvableValue !== undefined) {
       const result: any[] | undefined = existingValue
         ? merge([], resolve(resolvableValue), existingValue)
         : resolve(resolvableValue as Resolvable<any[], Context>)
 
       return result === undefined
         ? fallbackValue()
-        : result.map((x, i) => (shouldFallback(x) ? fallbackItemValue(i) : x))
+        : // TODO: pass x to the fallbackItemValue, as it might contained passed mocks
+          result.map((x, i) => (shouldFallback(x) ? fallbackItemValue(i) : x))
     }
 
     return resolvableValue === undefined ? fallbackValue() : resolvableValue
@@ -257,7 +254,7 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
 
   if (type instanceof GraphQLObjectType) {
     const fallbackValue = {}
-    if (resolvableValue) {
+    if (resolvableValue !== undefined) {
       const result = existingValue
         ? merge({}, resolve(resolvableValue), existingValue)
         : resolve(resolvableValue)
@@ -268,7 +265,7 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
   }
 
   if (type instanceof GraphQLUnionType || type instanceof GraphQLInterfaceType) {
-    if (resolvableValue) {
+    if (resolvableValue !== undefined) {
       const result = existingValue
         ? merge({}, resolve(resolvableValue), existingValue)
         : resolve(resolvableValue)
