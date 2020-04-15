@@ -40,5 +40,5 @@ generates:
           importTypesFrom: './gqlTypes'
     plugins:
       - add: '/* eslint-disable */'
-      - 'types-map'
+      - '@graphql-mock/codegen-types-map'
 

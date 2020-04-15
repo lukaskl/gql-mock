@@ -1,6 +1,6 @@
 {
-  "name": "gql-mock",
-  "version": "1.0.0",
+  "name": "@graphql-mock/mocking",
+  "version": "0.1.0",
   "repository": "https://github.com/lukaskl/gql-mock/tree/master/packages/gql-mock",
   "author": "lukaskl",
   "license": "MIT",
@@ -10,6 +10,7 @@
   "keywords": [
     "graphql",
     "gql-mock",
+    "graphql-mock",
     "typescript",
     "mocking"
   ],
