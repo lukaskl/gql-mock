@@ -41,7 +41,7 @@ export const defaultConfig: AllConfigOptions = {
   variablesTypeTemplate: '{OperationName}{OperationKind}Variables',
   operationDocumentTemplate: '{OperationName}{OperationKind === "Fragment" ? "FragmentDoc" : "Document"}',
   operationKindTemplate: '{operationKind}',
-  typeAccessorTypeTemplate: '{typeKind === "scalar" ? `Scalars["{typeName}"]` : typeName }',
+  typeAccessorTypeTemplate: '{typeKind === "scalar" ? `Scalars["{typeName}"]` : TypeName }',
   importedTypesAlias: 'Types',
   importTypesFrom: undefined,
   typeUsagesTemplate: 'TypeUsagesFor{OperationName}{OperationKind}',
