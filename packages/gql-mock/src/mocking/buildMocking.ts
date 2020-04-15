@@ -97,12 +97,12 @@ const buildMockingContext = <
       { resolvers: defaultMocks as any, preservePrevious: false },
       ...ensureArray(config.mocks).map(x => ({
         resolvers: (x || {}) as Exclude<typeof x, undefined>,
-        preservePrevious: false,
+        preservePrevious: true,
       })),
 
       ...ensureArray(mocks).map(x => ({
         resolvers: typeof x === 'function' ? x() : x,
-        preservePrevious: false,
+        preservePrevious: true,
       })),
     ],
   }
