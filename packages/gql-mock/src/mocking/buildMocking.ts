@@ -71,11 +71,11 @@ export function addTypenames(document: DocumentNode): DocumentNode {
 }
 
 export const defaultMocks: TypeMocks = {
-  Int: () => Math.round(Math.random() * 200) - 100,
-  Float: () => Math.random() * 200 - 100,
+  Int: 42,
+  Float: 0.7,
   String: 'Hello World',
-  Boolean: () => Math.random() > 0.5,
-  ID: () => uuid.v4(),
+  Boolean: false,
+  ID: '420de928-ad66-4bf1-a8cd-02c5df1e3e39',
 }
 
 const buildMockingContext = <
