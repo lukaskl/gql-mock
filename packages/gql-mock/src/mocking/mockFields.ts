@@ -13,11 +13,16 @@ import {
   GraphQLNullableType,
 } from 'graphql'
 import { forEachField } from 'graphql-tools'
-import merge from 'lodash.merge'
+import mergeRaw from 'lodash.merge'
 import { PossibleResolvedValued, ResolveFn, Resolvable } from './types'
 import flatMap from 'lodash.flatmap'
 
 export const MAGIC_CONTEXT_MOCKS = '__MOCKS-2ba176b7-1636-4cc8-a9cd-f0dcf9c09761'
+
+const merge = (...args: PossibleResolvedValued[]) => {
+  const objs = args.map(x => ({ temp: x }))
+  return (mergeRaw as any)(...objs).temp
+}
 
 export interface CacheMap {
   [key: string]: PossibleResolvedValued
@@ -118,7 +123,7 @@ const getTypeMockResolver = (
       if (mock.preservePrevious === false && !interfaceTypes.includes(mock.type)) {
         break
       }
-      returnValue = merge({ temp: undefined }, { temp: value }, { temp: returnValue }).temp
+      returnValue = merge(undefined, value, returnValue)
     }
 
     return returnValue
