@@ -10,6 +10,10 @@ export type AnyOperationMap = {
   kind: OperationKind
 }
 
+export type UnknownTypesMocks = {
+  [type in any]?: unknown
+}
+
 export type MockResolverFn<Root extends {}, Args extends {}, Return, Context = {}> = (
   root: Root,
   args: Args,
@@ -96,9 +100,10 @@ export interface BuildMockingConfig<
     allOutputTypes: {}
     allScalarTypes: {}
   },
-  Context = {}
+  Context = {},
+  LooseMocks extends boolean = false
 > {
-  mocks?: OptionalArray<AllTypesMocks<TypesMap>>
+  mocks?: OptionalArray<LooseMocks extends false ? AllTypesMocks<TypesMap, Context> : UnknownTypesMocks>
   context?: Context
 }
 
@@ -123,6 +128,26 @@ export type OperationMockOptions<
 > = {
   mocks?: UserMocksInput<TypesMap, Operation>
 } & RequireIfNotEmpty<'variables', Variables<TypesMap, Operation>>
+
+export type RawDocumentMockOptions<
+  TypesMap extends {
+    operations: { [key in keyof TypesMap['operations']]: AnyOperationMap }
+    fieldArgsUsages: {}
+    allOutputTypes: {}
+    allScalarTypes: {}
+  },
+  Variables extends {} = {},
+  Context extends {} = {},
+  LooseMocks extends boolean = false
+> = {
+  mocks?: OptionalArray<LooseMocks extends false ? AllTypesMocks<TypesMap, Context> : UnknownTypesMocks>
+  /**
+   * When mocking a fragment (_that means there are no query / mutation / subscription defined_)
+   * and there are more than one fragment defined it is necessary to specify which fragment
+   * should be returned.
+   */
+  targetFragment?: string
+} & RequireIfNotEmpty<'variables', Variables>
 
 export type MockFields<Type extends {}, ArgsMap extends {}, Context = {}> = {
   [Field in keyof Type]?: FieldMock<

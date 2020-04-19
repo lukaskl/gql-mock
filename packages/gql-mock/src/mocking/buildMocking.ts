@@ -8,8 +8,14 @@ import {
   print,
   SelectionSetNode,
   visit,
+  parse,
+  GraphQLNonNull,
+  GraphQLInputObjectType,
+  GraphQLObjectType,
+  FragmentDefinitionNode,
+  OperationDefinitionNode,
+  GraphQLError,
 } from 'graphql'
-import * as uuid from 'uuid'
 import { ensureArray, OptionalSpread } from '~/utils'
 
 import { FieldMockOptions, MAGIC_CONTEXT_MOCKS, MagicContext, mockFields } from './mockFields'
@@ -24,7 +30,10 @@ import {
   SchemaInput,
   TypeMocks,
   UserMocksInput,
+  RawDocumentMockOptions,
 } from './types'
+
+export const MAGIC_FRAGMENTS_TYPE = 'Fragments2ba176b716364cc8a9cdf0dcf9c09761'
 
 export const isIntrospectionQuery = (input: SchemaInput): input is NaiveIntrospectionResult =>
   !!(input as { __schema: any }).__schema
@@ -49,6 +58,45 @@ export const getSchema = (input: SchemaInput): GraphQLSchema => {
   throw new Error(
     `Schema must be one of: GraphQLSchema object, JSON of introspection query result, string of GraphQL SDL, found: ${input}`
   )
+}
+
+const emptyQuery = new GraphQLObjectType({ name: 'Query', fields: {} })
+export const getAugmentedSchema = (input: GraphQLSchema): GraphQLSchema => {
+  const inputConfig = input.toConfig()
+  const queryConfig = (inputConfig.query || emptyQuery).toConfig()
+
+  const rootTypeNames = [inputConfig.query, inputConfig.subscription, inputConfig.mutation]
+    .map(x => x?.name)
+    .filter(x => !!x)
+  const outputTypes = inputConfig.types.filter(
+    type =>
+      !type.name.startsWith('__') &&
+      !rootTypeNames.includes(type.name) &&
+      !(type instanceof GraphQLInputObjectType)
+  )
+
+  const fieldsMap = outputTypes
+    .map(x => ({ [x.name]: { type: new GraphQLNonNull(x) } }))
+    .reduce((l, r) => ({ ...l, ...r }), {})
+  const fragmentsType = new GraphQLObjectType({
+    name: MAGIC_FRAGMENTS_TYPE,
+    fields: fieldsMap as any,
+  })
+
+  const result = new GraphQLSchema({
+    ...inputConfig,
+    types: [...outputTypes, fragmentsType],
+    subscription: inputConfig.subscription,
+    mutation: inputConfig.mutation,
+    query: new GraphQLObjectType({
+      ...queryConfig,
+      fields: {
+        ...queryConfig.fields,
+        ...{ [MAGIC_FRAGMENTS_TYPE]: { type: new GraphQLNonNull(fragmentsType) } },
+      },
+    }),
+  })
+  return result
 }
 
 export function addTypenames(document: DocumentNode): DocumentNode {
@@ -123,10 +171,143 @@ const getDocument = <
 >(
   operationName: Operation,
   documentsMap: Documents
-): string => {
+): DocumentNode => {
   // TODO: add lazy loading
   // TODO: add config whether add typenames or not, defaulting to add
-  return print(addTypenames(documentsMap[operationName].document))
+  return documentsMap[operationName].document
+}
+
+const augmentFragmentOperation = (
+  document: DocumentNode,
+  targetFragment?: string
+): { targetFragmentType?: string; document: DocumentNode } => {
+  const fragments = document.definitions.filter(
+    x => x.kind === 'FragmentDefinition'
+  ) as FragmentDefinitionNode[]
+  const operations = document.definitions.filter(
+    x => x.kind === 'OperationDefinition'
+  ) as OperationDefinitionNode[]
+  const fragmentsCount = fragments.length
+  const operationsCount = operations.length
+
+  if (operationsCount === 0) {
+    if (fragmentsCount === 0) {
+      throw new Error('No executable operation was passed')
+    }
+    if (fragmentsCount > 1 && !targetFragment) {
+      throw new Error(
+        `config.targetFragment variable is required when there are no operation definitions and more than one fragments definition, ` +
+          `choose targetFragment from [${fragments.map(x => x.name.value).join(', ')}]`
+      )
+    }
+
+    const fragmentName = fragmentsCount === 1 ? fragments[0].name.value : targetFragment
+    const targetFragmentType = fragments.find(x => x.name.value === fragmentName)?.typeCondition.name.value
+
+    if (!targetFragmentType || !fragmentName) {
+      throw new Error(`Bug in the code - expected to estimate targetFragmentType of ${print(document)}`)
+    }
+
+    const fragmentsQuery: OperationDefinitionNode = {
+      kind: 'OperationDefinition',
+      operation: 'query',
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: MAGIC_FRAGMENTS_TYPE },
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: targetFragmentType },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'FragmentSpread',
+                        name: { kind: 'Name', value: fragmentName },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    }
+    const augmentedDoc: DocumentNode = {
+      kind: 'Document',
+      definitions: [...fragments, fragmentsQuery],
+    }
+
+    return { document: augmentedDoc, targetFragmentType }
+  }
+
+  return { document, targetFragmentType: undefined }
+}
+
+const augmentDocument = (document: DocumentNode | string, targetFragment?: string) => {
+  const parsedDoc = typeof document === 'string' ? parse(document) : document
+  const { targetFragmentType, document: documentHandlingFragments } = augmentFragmentOperation(
+    parsedDoc,
+    targetFragment
+  )
+  const augmentedDocument = addTypenames(documentHandlingFragments)
+
+  return { targetFragmentType, augmentedDocument }
+}
+
+const executeGraphqlOperation = <
+  ExecutionResultData,
+  Variables extends {} = {},
+  ExtraContext extends {} = {}
+>(
+  schema: GraphQLSchema,
+  document: DocumentNode | string,
+  variableValues: Variables | undefined,
+  extraContext: ExtraContext,
+  targetOperation?: string
+): ExecutionResult<ExecutionResultData> => {
+  try {
+    const { targetFragmentType, augmentedDocument } = augmentDocument(document, targetOperation)
+
+    const source = print(augmentedDocument)
+    const result = graphqlSync<ExecutionResultData>({
+      schema,
+      source,
+      variableValues,
+      contextValue: extraContext,
+    })
+
+    if (targetFragmentType) {
+      const { data, errors } = result
+      const updatedData = (data as any)?.[MAGIC_FRAGMENTS_TYPE]?.[
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        targetFragmentType!
+      ] as ExecutionResultData
+      return { data: updatedData, errors }
+    }
+
+    return result
+  } catch (err) {
+    return {
+      data: undefined,
+      errors: [new GraphQLError(err?.message, undefined, undefined, undefined, undefined, err)],
+    }
+  }
+}
+
+interface ExecuteFn {
+  <ExecutionResultData, Variables extends {} = {}, ExtraContext extends {} = {}>(
+    document: DocumentNode | string,
+    variableValues: Variables | undefined,
+    extraContext: ExtraContext,
+    targetOperation?: string
+  ): ExecutionResult<ExecutionResultData>
 }
 
 export const buildMocking = <
@@ -137,28 +318,47 @@ export const buildMocking = <
     allScalarTypes: {}
   },
   Context = {},
-  Documents extends DocumentsMap<keyof TypesMap['operations']> = DocumentsMap<keyof TypesMap['operations']>
+  Documents extends DocumentsMap<keyof TypesMap['operations']> = DocumentsMap<keyof TypesMap['operations']>,
+  LooseMocks extends boolean = false
 >(
   schemaInput: SchemaInput,
   documentsMap: Documents,
-  config: BuildMockingConfig<TypesMap, Context> = {}
+  config: BuildMockingConfig<TypesMap, Context, LooseMocks> = {}
 ) => {
-  const schema = getSchema(schemaInput)
+  const schema = getAugmentedSchema(getSchema(schemaInput))
 
   mockFields({ schema })
+
+  const execute: ExecuteFn = (document, variableValues, extraContext, targetOperation) =>
+    executeGraphqlOperation(schema, document, variableValues, extraContext, targetOperation)
 
   const mock = <Operation extends OperationKeys<TypesMap>>(
     operationName: Operation,
     ...options: OptionalSpread<OperationMockOptions<TypesMap, Operation>>
   ): ExecutionResult<OperationResult<TypesMap, Operation>> => {
     const { mocks, variables } = options[0] || {}
-    const source = getDocument<TypesMap, Operation, Documents>(operationName, documentsMap)
+    const document = getDocument<TypesMap, Operation, Documents>(operationName, documentsMap)
+    const context = buildMockingContext(mocks || {}, config)
 
-    const contextValue = buildMockingContext(mocks || {}, config)
-    const variableValues = variables
-    const result = graphqlSync({ schema, source, variableValues, contextValue })
+    const result = execute<OperationResult<TypesMap, Operation>>(
+      document,
+      variables,
+      context,
+      operationName as string
+    )
     return result
   }
 
-  return { mock }
+  const mockDocument = <ExecutionResultData = unknown, Variables extends {} = {}>(
+    document: string | DocumentNode,
+    ...options: OptionalSpread<RawDocumentMockOptions<TypesMap, Variables, Context, LooseMocks>>
+  ): ExecutionResult<ExecutionResultData> => {
+    const { mocks, variables, targetFragment } = options[0] || {}
+    const context = buildMockingContext(mocks || {}, config)
+
+    const result = execute<ExecutionResultData, Variables>(document, variables, context, targetFragment)
+    return result
+  }
+
+  return { mock, mockDocument }
 }

@@ -1,4 +1,5 @@
 import { GraphQLResolveInfo, GraphQLSchema } from 'graphql'
+import { UnknownKeysObj } from '~/utils'
 
 export type OperationKind = 'mutation' | 'query' | 'subscription' | 'fragment'
 
@@ -8,7 +9,7 @@ export type PossibleResolvedValued =
   | boolean // Type can be a scalar
   | number // Type can be a scalar
   | string // Type can be a scalar or an enum
-  | { [key in any]: unknown }
+  | UnknownKeysObj
   | any[]
 
 export type NaiveIntrospectionResult = { __schema: any }
@@ -16,10 +17,10 @@ export type SchemaInput = NaiveIntrospectionResult | string | GraphQLSchema
 
 export type ResolveFn<
   T extends PossibleResolvedValued = PossibleResolvedValued,
-  Context extends {} = { [key in any]: unknown }
-> = (source: unknown, args: { [argName: string]: unknown }, context: Context, info: GraphQLResolveInfo) => T
+  Context extends {} = UnknownKeysObj
+> = (source: UnknownKeysObj, args: UnknownKeysObj, context: Context, info: GraphQLResolveInfo) => T
 
 export type Resolvable<
   T extends PossibleResolvedValued = PossibleResolvedValued,
-  Context extends {} = { [key in any]: unknown }
+  Context extends {} = UnknownKeysObj
 > = T | ResolveFn<T, Context>

@@ -1,3 +1,5 @@
+export type UnknownKeysObj = { [key: string]: unknown }
+
 export type PickIfExists<
   Type extends {},
   Key extends string | number | symbol,
