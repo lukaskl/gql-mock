@@ -262,7 +262,7 @@ const augmentDocument = (document: DocumentNode | string, targetFragment?: strin
   )
   const augmentedDocument = addTypenames(documentHandlingFragments)
 
-  return { targetFragmentType, augmentedDocument }
+  return { targetFragmentType, augmentedDocument, originalDocument: parsedDoc }
 }
 
 const executeGraphqlOperation = <
@@ -277,10 +277,14 @@ const executeGraphqlOperation = <
   targetOperation?: string
 ): EnhancedExecutionResult<ExecutionResultData, Variables, ExtraContext> => {
   try {
-    const { targetFragmentType, augmentedDocument } = augmentDocument(document, targetOperation)
+    const { targetFragmentType, augmentedDocument, originalDocument } = augmentDocument(
+      document,
+      targetOperation
+    )
 
     const enhancedResultData = {
-      document: augmentedDocument,
+      document: originalDocument,
+      augmentedDocument,
       variables: variableValues,
       // TODO: support passing context
       context: {} as ExtraContext,
@@ -320,7 +324,8 @@ const executeGraphqlOperation = <
     return {
       data: undefined,
       errors: [new GraphQLError(err?.message, undefined, undefined, undefined, undefined, err)],
-      document: { definitions: [], kind: 'Document' },
+      document: typeof document !== 'string' ? document : { definitions: [], kind: 'Document' },
+      augmentedDocument: { definitions: [], kind: 'Document' },
       variables: variableValues,
       // TODO: support passing context
       context: {} as ExtraContext,
@@ -339,6 +344,7 @@ interface ExecuteFn {
 
 export interface EnhancedExecutionResult<Data, Variables, Context> extends ExecutionResult<Data> {
   document: DocumentNode
+  augmentedDocument: DocumentNode
   variables?: Variables
   context: Context
 }
