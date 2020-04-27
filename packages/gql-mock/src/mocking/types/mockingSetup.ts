@@ -102,7 +102,7 @@ export interface BuildMockingConfig<
   },
   Context = {},
   LooseMocks extends boolean = false
-> {
+> extends BaseMockOptions {
   mocks?: OptionalArray<LooseMocks extends false ? AllTypesMocks<TypesMap, Context> : UnknownTypesMocks>
   context?: Context
 }
@@ -117,6 +117,36 @@ export type UserMocksInput<
   Operation extends OperationKeys<TypesMap>
 > = OptionalArray<ScopedMockResolvers<TypesMap, Operation> | (() => AllTypesMocks<TypesMap>)>
 
+export type MergingStrategy = 'preserve-deeper' | 'preserve-shallow'
+
+export interface BaseMockOptions {
+  /**
+   * Nested values merging describes which value wins
+   * when we are merging two (or more) conflicting mocks
+   * e.g.:
+   * ```
+   * {
+   *   Comment: { postedBy: { htmlUrl: 'one' } },
+   *   User: { htmlUrl: 'two' }
+   * }
+   * ```
+   * Here `htmlUrl` can be either `one` or `two` depending what
+   * was really the intent of the developer.
+   *
+   * `preserve-deeper` (_default value_) policy will take
+   * the deeper value (_in the example above, result would be `one`_)
+   *
+   * `preserve-shallow` policy will take value which is closer
+   * to the type mock, (_in the example above, result would be `two`_)
+   *
+   * in case there are two mocks are at equal depth, later one will
+   * be honored in all cases.
+   *
+   * @default 'preserve-deeper'
+   */
+  mergingStrategy?: MergingStrategy
+}
+
 export type OperationMockOptions<
   TypesMap extends {
     operations: { [key in keyof TypesMap['operations']]: AnyOperationMap }
@@ -127,7 +157,8 @@ export type OperationMockOptions<
   Operation extends OperationKeys<TypesMap>
 > = {
   mocks?: UserMocksInput<TypesMap, Operation>
-} & RequireIfNotEmpty<'variables', Variables<TypesMap, Operation>>
+} & BaseMockOptions &
+  RequireIfNotEmpty<'variables', Variables<TypesMap, Operation>>
 
 export type RawDocumentMockOptions<
   TypesMap extends {
@@ -147,7 +178,8 @@ export type RawDocumentMockOptions<
    * should be returned.
    */
   targetFragment?: string
-} & RequireIfNotEmpty<'variables', Variables>
+} & BaseMockOptions &
+  RequireIfNotEmpty<'variables', Variables>
 
 export type MockFields<Type extends {}, ArgsMap extends {}, Context = {}> = {
   [Field in keyof Type]?: FieldMock<

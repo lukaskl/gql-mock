@@ -31,6 +31,7 @@ import {
   TypeMocks,
   UserMocksInput,
   RawDocumentMockOptions,
+  BaseMockOptions,
 } from './types'
 
 export const MAGIC_FRAGMENTS_TYPE = 'Fragments2ba176b716364cc8a9cdf0dcf9c09761'
@@ -137,13 +138,14 @@ const buildMockingContext = <
   Context = {}
 >(
   mocks: UserMocksInput<TypesMap, Operation>,
-  config: BuildMockingConfig<TypesMap, Context>
+  baseConfig: BuildMockingConfig<TypesMap, Context>,
+  configOverrides: BaseMockOptions
 ): MagicContext => {
   const extraContextContent: FieldMockOptions = {
     cache: {},
     mocks: [
       { resolvers: defaultMocks as any, preservePrevious: false },
-      ...ensureArray(config.mocks).map(x => ({
+      ...ensureArray(baseConfig.mocks).map(x => ({
         resolvers: (x || {}) as Exclude<typeof x, undefined>,
         preservePrevious: true,
       })),
@@ -153,10 +155,11 @@ const buildMockingContext = <
         preservePrevious: true,
       })),
     ],
+    mergingStrategy: configOverrides.mergingStrategy || baseConfig.mergingStrategy || 'preserve-deeper',
   }
 
   const mockingContext: MagicContext = {
-    ...config.context,
+    ...baseConfig.context,
     [MAGIC_CONTEXT_MOCKS]: extraContextContent,
   }
   return mockingContext
@@ -336,9 +339,9 @@ export const buildMocking = <
     operationName: Operation,
     ...options: OptionalSpread<OperationMockOptions<TypesMap, Operation>>
   ): ExecutionResult<OperationResult<TypesMap, Operation>> => {
-    const { mocks, variables } = options[0] || {}
+    const { mocks, variables, ...overrides } = options[0] || {}
     const document = getDocument<TypesMap, Operation, Documents>(operationName, documentsMap)
-    const context = buildMockingContext(mocks || {}, config)
+    const context = buildMockingContext(mocks || {}, config, overrides)
 
     const result = execute<OperationResult<TypesMap, Operation>>(
       document,
@@ -353,8 +356,8 @@ export const buildMocking = <
     document: string | DocumentNode,
     ...options: OptionalSpread<RawDocumentMockOptions<TypesMap, Variables, Context, LooseMocks>>
   ): ExecutionResult<ExecutionResultData> => {
-    const { mocks, variables, targetFragment } = options[0] || {}
-    const context = buildMockingContext(mocks || {}, config)
+    const { mocks, variables, targetFragment, ...overrides } = options[0] || {}
+    const context = buildMockingContext(mocks || {}, config, overrides)
 
     const result = execute<ExecutionResultData, Variables>(document, variables, context, targetFragment)
     return result

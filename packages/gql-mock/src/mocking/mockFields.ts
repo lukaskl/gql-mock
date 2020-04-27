@@ -14,7 +14,7 @@ import {
 } from 'graphql'
 import { forEachField } from 'graphql-tools'
 import mergeRaw from 'lodash.merge'
-import { PossibleResolvedValued, ResolveFn, Resolvable, MergingStrategy } from './types'
+import { PossibleResolvedValued, ResolveFn, Resolvable, MergingStrategy, BaseMockOptions } from './types'
 import flatMap from 'lodash.flatmap'
 
 export const MAGIC_CONTEXT_MOCKS = '__MOCKS-2ba176b7-1636-4cc8-a9cd-f0dcf9c09761'
@@ -37,7 +37,6 @@ export interface FieldMockOptions {
   cache: CacheMap
   mocks: TypeMock[]
   mergingStrategy: MergingStrategy
-
 }
 
 export interface MockFieldsOptions {
@@ -178,6 +177,7 @@ interface ResolveTypeParams<Context extends {} = { [key in any]: unknown }> {
     takeFirstResolvedOnly?: boolean
   ) => ResolveFn<PossibleResolvedValued>
   onUnexpectedType: (type: GraphQLNullableType, path: (string | number)[]) => never
+  config: BaseMockOptions
 }
 const resolveType = <Context extends {} = { [key in any]: unknown }>(
   params: ResolveTypeParams<Context>
@@ -186,12 +186,27 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
 
   const typeName = getNamedType(type).name
 
-  if (type instanceof GraphQLScalarType) {
-    if (existingValue !== undefined) return existingValue
-    if (resolvableValue !== undefined) {
-      const result = resolve(resolvableValue)
-      if (result !== undefined) return result
+  const getMergedValue = (): PossibleResolvedValued => {
+    const { mergingStrategy } = params.config
+    if (mergingStrategy === 'preserve-deeper') {
+      if (existingValue !== undefined && type instanceof GraphQLScalarType) {
+        return existingValue
+      }
+      return merge(undefined, resolve(resolvableValue), existingValue)
     }
+    if (mergingStrategy === 'preserve-shallow') {
+      const resolved = resolve(resolvableValue)
+      if (resolved !== undefined && type instanceof GraphQLScalarType) {
+        return resolved
+      }
+      return merge(undefined, existingValue, resolved)
+    }
+    throw new Error(`unexpected merging strategy received: "${mergingStrategy}"`)
+  }
+  const mergedValue = getMergedValue()
+
+  if (type instanceof GraphQLScalarType) {
+    if (mergedValue !== undefined) return mergedValue
 
     const resolvableScalar = getResolver(typeName, path, [], true)
 
@@ -211,11 +226,7 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
   }
 
   if (type instanceof GraphQLEnumType) {
-    if (existingValue !== undefined) return existingValue
-    if (resolvableValue !== undefined) {
-      const result = resolve(resolvableValue)
-      if (result !== undefined) return result
-    }
+    if (mergedValue !== undefined) return mergedValue
 
     const resolvableEnum = getResolver(typeName, path, [], true)
 
@@ -232,7 +243,6 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
   }
 
   if (type instanceof GraphQLList) {
-    // TODO: check this with nested lists, e.g. [[Int]]
     const itemType = type.ofType
     const fallbackItemValue = (position: number, existingItem: PossibleResolvedValued = undefined) => {
       if (itemType instanceof GraphQLObjectType) {
@@ -271,41 +281,20 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
       }
       return false
     }
-    if (resolvableValue !== undefined || existingValue !== undefined) {
-      const result: any[] | undefined = existingValue
-        ? (merge([], resolve(resolvableValue), existingValue) as any[])
-        : resolve(resolvableValue as Resolvable<any[], Context>)
 
-      return result === undefined
-        ? fallbackValue()
-        : result.map((x, i) => (shouldFallback(i, x) ? fallbackItemValue(i, x) : x))
-    }
-
-    return fallbackValue()
+    return mergedValue === undefined
+      ? fallbackValue()
+      : (mergedValue as any[]).map((x, i) => (shouldFallback(i, x) ? fallbackItemValue(i, x) : x))
   }
 
   if (type instanceof GraphQLObjectType) {
-    const fallbackValue = {}
-    if (resolvableValue !== undefined) {
-      const result = existingValue
-        ? merge({}, resolve(resolvableValue), existingValue)
-        : resolve(resolvableValue)
-      return result === undefined ? fallbackValue : result
-    }
-
-    return resolvableValue === undefined ? fallbackValue : resolvableValue
+    if (mergedValue !== undefined) return mergedValue
+    return {} // fallback value of object type
   }
 
   if (type instanceof GraphQLUnionType || type instanceof GraphQLInterfaceType) {
-    if (resolvableValue !== undefined) {
-      const result = existingValue
-        ? merge({}, resolve(resolvableValue), existingValue)
-        : resolve(resolvableValue)
-      if (result !== undefined) return result
-    }
-
     const resolvableAbstract = getResolver(typeName, path, [], true)
-    const result = resolve(resolvableAbstract)
+    const result = merge(undefined, resolve(resolvableAbstract), mergedValue)
     if (result === undefined || !isValidAbstract(result)) {
       throw new Error(
         `A mock providing "__typename" property for type ${typeName} is required, error at ${path.join('.')}`
@@ -397,6 +386,7 @@ function mockFields({ schema }: MockFieldsOptions): void {
             }" of "${parentTypeName}.${fieldName}" at ${path.join('.')}`
           )
         },
+        config: options,
       })
     }
 
