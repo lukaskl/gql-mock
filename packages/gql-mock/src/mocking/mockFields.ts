@@ -14,12 +14,12 @@ import {
 } from 'graphql'
 import { forEachField } from 'graphql-tools'
 import mergeRaw from 'lodash.merge'
-import { PossibleResolvedValued, ResolveFn, Resolvable } from './types'
+import { PossibleResolvedValued, ResolveFn, Resolvable, MergingStrategy } from './types'
 import flatMap from 'lodash.flatmap'
 
 export const MAGIC_CONTEXT_MOCKS = '__MOCKS-2ba176b7-1636-4cc8-a9cd-f0dcf9c09761'
 
-const merge = (...args: PossibleResolvedValued[]) => {
+const merge = (...args: PossibleResolvedValued[]): PossibleResolvedValued => {
   const objs = args.map(x => ({ temp: x }))
   return (mergeRaw as any)(...objs).temp
 }
@@ -36,6 +36,8 @@ type TypeMock = { resolvers: TypeMockResolvers; preservePrevious: boolean }
 export interface FieldMockOptions {
   cache: CacheMap
   mocks: TypeMock[]
+  mergingStrategy: MergingStrategy
+
 }
 
 export interface MockFieldsOptions {
@@ -138,6 +140,31 @@ const getTypeMockResolver = (
 const isValidAbstract = (item: PossibleResolvedValued) =>
   typeof item === 'object' && item && !!(item as { [key: string]: any })['__typename']
 
+const guardItemType = (
+  item: Exclude<PossibleResolvedValued, null | undefined>,
+  itemType: GraphQLNullableType,
+  path: (string | number)[]
+) => {
+  if (itemType instanceof GraphQLList && !Array.isArray(item)) {
+    throw new Error(`expected item of list type at path ${path.join('.')}, found ${JSON.stringify(item)}`)
+  }
+  if (
+    itemType instanceof GraphQLObjectType ||
+    itemType instanceof GraphQLUnionType ||
+    itemType instanceof GraphQLInterfaceType
+  ) {
+    if (typeof item !== 'object' || Array.isArray(item)) {
+      throw new Error(`expected item of object type at path ${path.join('.')}, found ${JSON.stringify(item)}`)
+    }
+  }
+
+  if (itemType instanceof GraphQLEnumType && typeof item !== 'string') {
+    throw new Error(`expected item of string type at path ${path.join('.')}, found ${JSON.stringify(item)}`)
+  }
+
+  // we shouldn't validate scalars, as scalar can be nearly everything what user defines.
+}
+
 interface ResolveTypeParams<Context extends {} = { [key in any]: unknown }> {
   type: GraphQLNullableType
   existingValue: PossibleResolvedValued
@@ -206,9 +233,8 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
 
   if (type instanceof GraphQLList) {
     // TODO: check this with nested lists, e.g. [[Int]]
-    const itemType = getNamedType(type)
-    const isNestedList = getNullableType(type.ofType) instanceof GraphQLList
-    const fallbackItemValue = (position: number) => {
+    const itemType = type.ofType
+    const fallbackItemValue = (position: number, existingItem: PossibleResolvedValued = undefined) => {
       if (itemType instanceof GraphQLObjectType) {
         return {}
       }
@@ -222,7 +248,7 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
         return resolveType({
           ...params,
           type: itemType,
-          existingValue: undefined,
+          existingValue: existingItem,
           resolvableValue: undefined,
           path: [...path, position],
         })
@@ -231,10 +257,12 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
       return onUnexpectedType(itemType, [...path, position])
     }
     const fallbackValue = () => [fallbackItemValue(0), fallbackItemValue(1)]
-    const shouldFallback = (item: PossibleResolvedValued) => {
+    const shouldFallback = (position: number, item: PossibleResolvedValued) => {
       if (item === undefined) return true
       if (item === null) return false
-      if (isNestedList) return true
+      guardItemType(item, itemType, [...path, position])
+      if (itemType instanceof GraphQLList) return true
+
       if (
         (itemType instanceof GraphQLUnionType || itemType instanceof GraphQLInterfaceType) &&
         !isValidAbstract(item)
@@ -243,18 +271,17 @@ const resolveType = <Context extends {} = { [key in any]: unknown }>(
       }
       return false
     }
-    if (resolvableValue !== undefined) {
+    if (resolvableValue !== undefined || existingValue !== undefined) {
       const result: any[] | undefined = existingValue
-        ? merge([], resolve(resolvableValue), existingValue)
+        ? (merge([], resolve(resolvableValue), existingValue) as any[])
         : resolve(resolvableValue as Resolvable<any[], Context>)
 
       return result === undefined
         ? fallbackValue()
-        : // TODO: pass x to the fallbackItemValue, as it might contained passed mocks
-          result.map((x, i) => (shouldFallback(x) ? fallbackItemValue(i) : x))
+        : result.map((x, i) => (shouldFallback(i, x) ? fallbackItemValue(i, x) : x))
     }
 
-    return resolvableValue === undefined ? fallbackValue() : resolvableValue
+    return fallbackValue()
   }
 
   if (type instanceof GraphQLObjectType) {
