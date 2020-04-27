@@ -20,7 +20,7 @@ import {
   PrinterConfig,
   OperationsMapPrinter,
   AllConfigOptions,
-} from 'graphql-codegen-types-map/dist'
+} from '@graphql-mock/codegen-types-map/dist'
 
 const validatePackageImports = () => {
   const imports = { plugin, OperationsParser, PrinterConfig, OperationsMapPrinter }

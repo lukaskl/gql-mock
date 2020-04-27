@@ -16,7 +16,13 @@ export const operationsKeys: KeysObj<OperationsMap> = {
   VoteButtons: null,
   getExtendedFollowSuggestions: null,
   getRepositoryContributors: null,
-  getSimpleFollowSuggestions: null
+  getSimpleFollowSuggestions: null,
+  ExtendedFollowable: null,
+  SimpleFollowable: null,
+  getExtendedFollowSuggestion: null,
+  getSimpleFollowSuggestion: null,
+  getListOfScalars: null,
+  getListOfEnums: null
 };
 
 {
