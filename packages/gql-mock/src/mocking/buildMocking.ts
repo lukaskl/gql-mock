@@ -32,6 +32,7 @@ import {
   UserMocksInput,
   RawDocumentMockOptions,
   BaseMockOptions,
+  Variables,
 } from './types'
 
 export const MAGIC_FRAGMENTS_TYPE = 'Fragments2ba176b716364cc8a9cdf0dcf9c09761'
@@ -274,32 +275,55 @@ const executeGraphqlOperation = <
   variableValues: Variables | undefined,
   extraContext: ExtraContext,
   targetOperation?: string
-): ExecutionResult<ExecutionResultData> => {
+): EnhancedExecutionResult<ExecutionResultData, Variables, ExtraContext> => {
   try {
     const { targetFragmentType, augmentedDocument } = augmentDocument(document, targetOperation)
 
-    const source = print(augmentedDocument)
-    const result = graphqlSync<ExecutionResultData>({
-      schema,
-      source,
-      variableValues,
-      contextValue: extraContext,
-    })
-
-    if (targetFragmentType) {
-      const { data, errors } = result
-      const updatedData = (data as any)?.[MAGIC_FRAGMENTS_TYPE]?.[
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        targetFragmentType!
-      ] as ExecutionResultData
-      return { data: updatedData, errors }
+    const enhancedResultData = {
+      document: augmentedDocument,
+      variables: variableValues,
+      // TODO: support passing context
+      context: {} as ExtraContext,
     }
 
-    return result
+    try {
+      const source = print(augmentedDocument)
+      const result = graphqlSync<ExecutionResultData>({
+        schema,
+        source,
+        variableValues,
+        contextValue: extraContext,
+      })
+
+      if (targetFragmentType) {
+        const { data, errors } = result
+        const updatedData = (data as any)?.[MAGIC_FRAGMENTS_TYPE]?.[
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          targetFragmentType!
+        ] as ExecutionResultData
+        return {
+          data: updatedData,
+          errors,
+          ...enhancedResultData,
+        }
+      }
+
+      return { ...result, ...enhancedResultData }
+    } catch (err) {
+      return {
+        data: undefined,
+        errors: [new GraphQLError(err?.message, undefined, undefined, undefined, undefined, err)],
+        ...enhancedResultData,
+      }
+    }
   } catch (err) {
     return {
       data: undefined,
       errors: [new GraphQLError(err?.message, undefined, undefined, undefined, undefined, err)],
+      document: { definitions: [], kind: 'Document' },
+      variables: variableValues,
+      // TODO: support passing context
+      context: {} as ExtraContext,
     }
   }
 }
@@ -310,7 +334,13 @@ interface ExecuteFn {
     variableValues: Variables | undefined,
     extraContext: ExtraContext,
     targetOperation?: string
-  ): ExecutionResult<ExecutionResultData>
+  ): EnhancedExecutionResult<ExecutionResultData, Variables, ExtraContext>
+}
+
+export interface EnhancedExecutionResult<Data, Variables, Context> extends ExecutionResult<Data> {
+  document: DocumentNode
+  variables?: Variables
+  context: Context
 }
 
 export const buildMocking = <
@@ -338,7 +368,7 @@ export const buildMocking = <
   const mock = <Operation extends OperationKeys<TypesMap>>(
     operationName: Operation,
     ...options: OptionalSpread<OperationMockOptions<TypesMap, Operation>>
-  ): ExecutionResult<OperationResult<TypesMap, Operation>> => {
+  ): EnhancedExecutionResult<OperationResult<TypesMap, Operation>, Variables<TypesMap, Operation>, {}> => {
     const { mocks, variables, ...overrides } = options[0] || {}
     const document = getDocument<TypesMap, Operation, Documents>(operationName, documentsMap)
     const context = buildMockingContext(mocks || {}, config, overrides)
@@ -355,7 +385,7 @@ export const buildMocking = <
   const mockDocument = <ExecutionResultData = unknown, Variables extends {} = {}>(
     document: string | DocumentNode,
     ...options: OptionalSpread<RawDocumentMockOptions<TypesMap, Variables, Context, LooseMocks>>
-  ): ExecutionResult<ExecutionResultData> => {
+  ): EnhancedExecutionResult<ExecutionResultData, Variables, {}> => {
     const { mocks, variables, targetFragment, ...overrides } = options[0] || {}
     const context = buildMockingContext(mocks || {}, config, overrides)
 
